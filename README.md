@@ -40,3 +40,23 @@ MVP in planning. Spec is a living document; see docs/spec.md for current decisio
 - Update the living spec at `docs/spec.md` when decisions change.
 - Keep `docs/initial-data/` in sync with any prototype inputs used by importers.
 - Prefer small, incremental changes with clear commit messages.
+
+## Engineering Principles (summary)
+
+- Env-driven config: All endpoints, timeouts, API keys, and feature flags read from `.env`.
+- Modularity: HTTP clients (Coingecko, FRED, Fear&Greed) separated from business services (pricing, indicators, rules).
+- Observability: JSONL alerts and structured logs for key events.
+- Testability: Clients/services designed for dependency injection and mocking.
+
+### Environment Variables
+
+- COINGECKO: Coingecko API key (optional for public endpoints)
+- FRED_API_KEY: FRED API key for DXY proxy (DTWEXBGS)
+- DB_PATH: path to SQLite DB (default: balancer.db)
+- LOG_PATH: alerts log path (default: alerts.jsonl)
+- INITIAL_TOKENLIST: path to initial portfolio file (default: docs/initial-data/tokenlist.txt)
+- CG_MAPPING_FILE: path to Coingecko IDs mapping (default: docs/initial-data/cg-mapping.txt)
+- BASE_CCY: default valuation currency (default: USD)
+- HTTP_TIMEOUT: request timeout seconds (default: 20)
+- HTTP_RETRIES: number of retries (default: 2)
+- COOLOFF_DAYS: rule cool-off in days (default: 1)

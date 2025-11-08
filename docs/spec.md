@@ -116,6 +116,20 @@ This document captures the current design, decisions, and pointers for the Balan
 - Commit DB initially; reassess at ~20MB.
 - No Docker for prototype; production could use Kubernetes (Rancher Desktop available locally).
 
+## Engineering Principles
+
+- Environment-driven configuration
+  - All external endpoints, timeouts, keys, and feature flags are read from `.env` (or environment) with sane defaults.
+  - The same `.env` can be shared between backend and frontend (do not commit secrets; use local overrides for dev).
+- Modularity and separation of concerns
+  - HTTP clients encapsulate API access (Coingecko, FRED, alternative.me), with retries and timeouts.
+  - Services implement business logic (pricing, indicators, rules) and depend on clients.
+  - Importers/CLIs are thin layers calling services.
+- Testability
+  - Clients and services are unit-testable via dependency injection and mocks.
+- Observability
+  - JSONL alerts and structured logs for key events.
+
 ## Roadmap
 
 - Phase 1 (MVP): importer, pricing job, laddered 100% rule, drift checks, JSONL alerts, minimal dashboard.
