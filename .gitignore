@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtualenv
+.venv/
+
+# Local artifacts
+balancer.db
+alerts.jsonl
+portfolio.json
+.cache/
