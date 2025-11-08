@@ -8,3 +8,5 @@ __pycache__/
 # Local artifacts
 balancer.db
 alerts.jsonl
+portfolio.json
+.cache/
