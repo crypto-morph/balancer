@@ -22,6 +22,27 @@ A portfolio advisory tool for crypto. Advisory-only (no auto-trading) with hourl
 - Frontend: Next.js + Tailwind + shadcn/ui.
 - Runbook and detailed instructions live in docs/spec.md.
 
+## Running the hourly pipeline
+
+- Ensure `.env` is set (see Environment Variables below) and DB path is writable.
+- Create and activate venv, install deps, then run once:
+
+```bash
+. .venv/bin/activate
+python -m balancer.runner
+```
+
+### Cron example (hourly)
+
+```
+0 * * * * cd /path/to/balancer && . .venv/bin/activate && python -m balancer.runner >> runner.log 2>&1
+```
+
+### systemd timer (sketch)
+
+- Service: call `python -m balancer.runner` in the repo directory with the venv activated (or use ExecStart with venv python).
+- Timer: `OnCalendar=hourly`.
+
 ## Initial Data (prototype)
 
 - docs/initial-data/tokenlist.txt

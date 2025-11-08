@@ -13,6 +13,9 @@ def fetch_btcd() -> float:
 
 def fetch_dxy_fred(api_key: str | None = None) -> float:
     api_key = api_key or FRED_API_KEY
+    if not api_key:
+        # No key configured; skip fetching DXY and return 0.0
+        return 0.0
     data = FredClient(api_key=api_key).series_observations("DTWEXBGS")
     observations = data.get("observations") or []
     if not observations:
