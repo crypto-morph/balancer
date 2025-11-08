@@ -6,7 +6,11 @@ from .config import (
     FRED_BASE_URL,
     FNG_BASE_URL,
     COINGECKO_PER_PAGE,
+    COINGECKO_API_KEY,
+    COINGECKO_THROTTLE_MS,
 )
+import time
+from requests import HTTPError
 
 
 class CoingeckoClient:
@@ -18,15 +22,25 @@ class CoingeckoClient:
         if not ids:
             return []
         url = urljoin(self.base, "coins/markets")
-        per_page = min(len(ids) if len(ids) > 0 else COINGECKO_PER_PAGE, COINGECKO_PER_PAGE)
+        headers = None
         params = {
             "ids": ",".join(ids),
             "vs_currency": vs_currency.lower(),
-            "per_page": per_page,
-            "page": 1,
         }
-        resp = self.http.get(url, params=params)
-        return resp.json() or []
+        if COINGECKO_API_KEY:
+            params["x_cg_demo_api_key"] = COINGECKO_API_KEY
+        attempts = 0
+        while True:
+            try:
+                resp = self.http.get(url, params=params, headers=headers)
+                return resp.json() or []
+            except HTTPError as e:
+                status = getattr(e.response, "status_code", None)
+                if status == 429 and attempts < 3:
+                    attempts += 1
+                    time.sleep(1.5 * attempts)
+                    continue
+                raise
 
     def global_metrics(self) -> Dict[str, Any]:
         url = urljoin(self.base, "global")

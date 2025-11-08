@@ -1,17 +1,13 @@
-from datetime import datetime
-from .price_fetcher import read_mapping_ids, fetch_markets, store_prices, derive_and_store_btc_prices
+from datetime import datetime, UTC
+from .price_fetcher import run_price_fetch
 from .indicators import fetch_btcd, fetch_dxy_fred, fetch_fear_greed, store_indicator
 from .rules import run_rules
 from .exporter import export_portfolio_json
 
 
 def run_once() -> None:
-    # Prices
-    ids = read_mapping_ids()
-    rows_usd = fetch_markets(ids, "usd")
-    rows_gbp = fetch_markets(ids, "gbp")
-    btc_usd, _ = store_prices(rows_usd, rows_gbp)
-    derive_and_store_btc_prices(rows_usd, btc_usd)
+    # Prices (single-request pipeline)
+    run_price_fetch()
 
     # Indicators
     btcd = fetch_btcd()
@@ -31,6 +27,10 @@ def run_once() -> None:
 
 
 if __name__ == "__main__":
-    print(f"[runner] starting cycle at {datetime.utcnow().isoformat()}Z")
+    start = datetime.now(UTC)
     run_once()
-    print(f"[runner] finished at {datetime.utcnow().isoformat()}Z")
+    end = datetime.now(UTC)
+    s = start.isoformat().replace("+00:00", "Z")
+    e = end.isoformat().replace("+00:00", "Z")
+    dur = (end - start).total_seconds()
+    print(f"[runner] {s} -> {e} ({dur:.2f}s)")

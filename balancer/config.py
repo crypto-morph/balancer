@@ -7,7 +7,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "balancer.db"))
-COINGECKO_API_KEY = os.getenv("COINGECKO", "")
+# Support both names for the Coingecko API key
+COINGECKO_API_KEY = os.getenv("COINGECKO", "") or os.getenv("COINGECKO_API_KEY", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 DEFAULT_BASE_CCY = os.getenv("BASE_CCY", "USD")
 LOG_PATH = os.getenv("LOG_PATH", str(BASE_DIR / "alerts.jsonl"))
@@ -22,6 +23,8 @@ HTTP_RETRIES = int(os.getenv("HTTP_RETRIES", "2"))
 COINGECKO_BASE_URL = os.getenv("COINGECKO_BASE_URL", "https://api.coingecko.com/api/v3")
 FRED_BASE_URL = os.getenv("FRED_BASE_URL", "https://api.stlouisfed.org/fred")
 FNG_BASE_URL = os.getenv("FNG_BASE_URL", "https://api.alternative.me")
+COINGECKO_THROTTLE_MS = int(os.getenv("COINGECKO_THROTTLE_MS", "800"))
+COINGECKO_USE_API_KEY = os.getenv("COINGECKO_USE_API_KEY", "false").strip().lower() == "true"
 
 # Business rule defaults (env-overridable)
 DEFAULT_PORTFOLIO_NAME = os.getenv("PORTFOLIO_NAME", "Default")

@@ -130,6 +130,60 @@ This document captures the current design, decisions, and pointers for the Balan
 - Observability
   - JSONL alerts and structured logs for key events.
 
+## Recent Design Decisions (Nov 2025)
+
+- **Pricing fetch (Coingecko)**
+  - Single request per run to `coins/markets` with all IDs and `vs_currency=GBP`.
+  - API key: sent as `x_cg_demo_api_key` query param (mirrors a known-good request).
+  - USD derived from GBP via USDC-implied FX (store `GBP->USD` in `fx_rates`).
+  - BTC prices derived from BTCUSD (computed during store) for `ccy=BTC` valuations.
+
+- **ID set used for pricing**
+  - Prefer IDs from active positions to minimize API load; fallback to `docs/initial-data/cg-mapping.txt` first-line IDs.
+
+- **Icons**
+  - Next.js API `/api/icons` fetches once from Coingecko `coins/markets` and returns `{coingecko_id -> image_url}` (assets CDN URLs).
+  - 1-week on-disk cache at `.cache/icons.json`; on failure, serve stale cache.
+  - UI falls back to a symbol-based icon if no image is available.
+
+- **UI formatting**
+  - Currency toggle: USD/GBP/BTC tabs.
+  - Labels: “Market Value” and “Cost Basis” (avoid MV/CB abbreviations).
+  - Markers: `$`, `£`, and `BTC` suffix for BTC.
+  - Price precision: 2dp for USD/GBP; 8dp for BTC.
+  - Coins precision: fixed per-asset based on USD price (stable across tabs) to target ~$1 granularity.
+
+- **Runner logging**
+  - Timezone-aware UTC (`datetime.now(UTC)`) with single-line summary: `[runner] start -> end (duration)`.
+
+- **Resilience**
+  - Coingecko client has basic backoff for 429 and minimized request count.
+  - Icons endpoint uses cache and optional key to avoid rate limiting.
+
+- **Frontend UI (dashboard)**
+  - SummaryCard shows Profit / Loss (GBP) i.e., Market Value − Cost Basis, with thousands separators and colored sign.
+  - IndicatorsCard renders 30‑day sparklines for BTCD and Fear & Greed; DXY appears when data is available. Single-point series render as a flat line.
+  - PortfolioPie enlarged and placed above the table for readability.
+  - PortfolioTable:
+    - Sortable headers; default sorted by Weight (desc).
+    - Weight column shows asset % of total.
+    - Coins, prices, and money values formatted with locale thousands separators.
+    - Cost Basis displayed as a negative value (red) to reflect sunk cost.
+    - Footer totals: Market Value, Cost Basis, and Profit / Loss rows.
+    - Market cap “lozenge” per row (micro/small/medium/large/huge), tooltip shows cap in selected currency; clickable to Coingecko.
+  - Editing:
+    - Edit Coins and Cost Basis inline. Cost Basis entry supports USD/GBP/BTC (converted to USD on submit via per-asset FX).
+    - Numeric paste normalization supports both comma and dot thousands/decimals (Koinly-friendly).
+
+- **APIs**
+  - /api/portfolio now DB-backed (not portfolio.json): returns per-asset latest prices in USD/GBP/BTC, market values, and `cb_usd`.
+  - /api/portfolio/summary computes totals and deltas in GBP and returns `total_gbp`, `cost_basis_gbp`, and `net_gbp` (MV−CB).
+  - /api/indicators returns latest values and 30‑day series for BTCD, DXY_TWEX, FEAR_GREED.
+  - /api/icons caches 1 week and now returns both `images` and `caps` (market caps in USD). Falls back to stale cache on failure; refreshed when caps missing.
+
+- **Dev ergonomics**
+  - If Turbopack panics in dev, use webpack by setting `NEXT_DISABLE_TURBOPACK=1` (e.g., in `web/.env.local`) and restart dev.
+
 ## Roadmap
 
 - Phase 1 (MVP): importer, pricing job, laddered 100% rule, drift checks, JSONL alerts, minimal dashboard.
