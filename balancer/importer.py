@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple
 
-from .config import INITIAL_TOKENLIST
+from .config import INITIAL_TOKENLIST, AVG_COST_DEFAULT_CCY
 from .db import Base, engine, SessionLocal
 from .models import Asset, Portfolio, Position
 from .utils import parse_money_gbp, parse_float, clean_name
@@ -94,14 +94,14 @@ def import_tokenlist(tokenlist_path: str = INITIAL_TOKENLIST, portfolio_name: st
                     portfolio_id=portfolio.id,
                     asset_id=asset.id,
                     coins=coins,
-                    avg_cost_ccy="GBP",
+                    avg_cost_ccy=AVG_COST_DEFAULT_CCY,
                     avg_cost_per_unit=avg_buy_price_gbp,
                 )
                 db.add(pos)
             else:
                 # overwrite with latest from file
                 pos.coins = coins
-                pos.avg_cost_ccy = "GBP"
+                pos.avg_cost_ccy = AVG_COST_DEFAULT_CCY
                 pos.avg_cost_per_unit = avg_buy_price_gbp
                 db.add(pos)
             db.commit()

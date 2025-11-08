@@ -5,6 +5,7 @@ from .config import (
     COINGECKO_BASE_URL,
     FRED_BASE_URL,
     FNG_BASE_URL,
+    COINGECKO_PER_PAGE,
 )
 
 
@@ -17,10 +18,11 @@ class CoingeckoClient:
         if not ids:
             return []
         url = urljoin(self.base, "coins/markets")
+        per_page = min(len(ids) if len(ids) > 0 else COINGECKO_PER_PAGE, COINGECKO_PER_PAGE)
         params = {
             "ids": ",".join(ids),
             "vs_currency": vs_currency.lower(),
-            "per_page": len(ids) or 250,
+            "per_page": per_page,
             "page": 1,
         }
         resp = self.http.get(url, params=params)

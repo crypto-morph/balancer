@@ -22,3 +22,18 @@ HTTP_RETRIES = int(os.getenv("HTTP_RETRIES", "2"))
 COINGECKO_BASE_URL = os.getenv("COINGECKO_BASE_URL", "https://api.coingecko.com/api/v3")
 FRED_BASE_URL = os.getenv("FRED_BASE_URL", "https://api.stlouisfed.org/fred")
 FNG_BASE_URL = os.getenv("FNG_BASE_URL", "https://api.alternative.me")
+
+# Business rule defaults (env-overridable)
+DEFAULT_PORTFOLIO_NAME = os.getenv("PORTFOLIO_NAME", "Default")
+AVG_COST_DEFAULT_CCY = os.getenv("AVG_COST_CCY", "GBP").upper()
+
+MIN_TRADE_USD_DEFAULT = float(os.getenv("MIN_TRADE_USD", "50"))
+DRIFT_BAND_DEFAULT = float(os.getenv("DRIFT_BAND", "0.2"))
+
+_ladder_env = os.getenv("LADDER_VALUE_MULTIPLES", "2,3,5")
+try:
+    LADDER_VALUE_MULTIPLES = [float(x.strip()) for x in _ladder_env.split(",") if x.strip()]
+except Exception:
+    LADDER_VALUE_MULTIPLES = [2.0, 3.0, 5.0]
+
+COINGECKO_PER_PAGE = int(os.getenv("COINGECKO_PER_PAGE", "250"))

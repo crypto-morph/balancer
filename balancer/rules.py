@@ -3,7 +3,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 
-from .config import COOLOFF_DAYS, DEFAULT_BASE_CCY
+from .config import (
+    COOLOFF_DAYS,
+    DEFAULT_BASE_CCY,
+    LADDER_VALUE_MULTIPLES,
+    DRIFT_BAND_DEFAULT,
+    MIN_TRADE_USD_DEFAULT,
+    DEFAULT_PORTFOLIO_NAME,
+)
 from .db import SessionLocal
 from .models import Position, Price, FxRate, Target, Alert, Asset, Portfolio
 from .alerts import log_alert
@@ -117,7 +124,7 @@ def evaluate_take_profit(db, portfolio_id: int, pos: Position) -> None:
     # We use doubling thresholds starting from 2.0, 3.0? Spec states 1x profit (2.0 multiple), 2x profit (3.0 multiple?)
     # Clarified: 1x, 2x, 4x profit => multiples 2.0, 3.0? Actually 2x profit is 3x multiple; 4x profit is 5x multiple.
     # We'll implement thresholds at profit multiples [1, 2, 4] => asset value multiples [2, 3, 5].
-    thresholds = [2.0, 3.0, 5.0]
+    thresholds = LADDER_VALUE_MULTIPLES
     # Cooldown
     cooldown = timedelta(days=COOLOFF_DAYS)
     for m in thresholds:
@@ -175,8 +182,8 @@ def evaluate_drift(db, portfolio_id: int, positions: List[Position]) -> None:
             continue
         actual_w = (mv_by_asset.get(pos.asset_id, 0.0) / total_mv) if total_mv else 0.0
         drift = actual_w - (t.target_weight or 0.0)
-        band = t.drift_band or 0.2
-        min_trade = t.min_trade_usd or 50.0
+        band = (t.drift_band if t.drift_band is not None else DRIFT_BAND_DEFAULT)
+        min_trade = (t.min_trade_usd if t.min_trade_usd is not None else MIN_TRADE_USD_DEFAULT)
         if abs(drift) >= band:
             # Amount to trade in USD to get back to target
             target_value = (t.target_weight or 0.0) * total_mv
@@ -211,7 +218,7 @@ def evaluate_drift(db, portfolio_id: int, positions: List[Position]) -> None:
                 db.commit()
 
 
-def run_rules(portfolio_name: str = "Default") -> None:
+def run_rules(portfolio_name: str = DEFAULT_PORTFOLIO_NAME) -> None:
     with SessionLocal() as db:
         portfolio = db.query(Portfolio).filter_by(name=portfolio_name).first()
         if not portfolio:
