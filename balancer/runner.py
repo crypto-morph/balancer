@@ -2,6 +2,7 @@ from datetime import datetime
 from .price_fetcher import read_mapping_ids, fetch_markets, store_prices, derive_and_store_btc_prices
 from .indicators import fetch_btcd, fetch_dxy_fred, fetch_fear_greed, store_indicator
 from .rules import run_rules
+from .exporter import export_portfolio_json
 
 
 def run_once() -> None:
@@ -25,6 +26,8 @@ def run_once() -> None:
 
     # Rules
     run_rules(portfolio_name="Default")
+    # Export portfolio snapshot for UI
+    export_portfolio_json()
 
 
 if __name__ == "__main__":

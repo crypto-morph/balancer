@@ -1,6 +1,7 @@
 import { AlertsList } from "@/components/alerts-list";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
+import { PortfolioTable } from "@/components/portfolio-table";
 
 export default function Home() {
   return (
@@ -19,7 +20,7 @@ export default function Home() {
           </Card>
           <Card className="p-4 md:col-span-2">
             <div className="text-sm font-medium mb-2">Portfolio</div>
-            <div className="text-sm text-zinc-500">Table with currency toggle and stablecoins grouping (coming soon)</div>
+            <PortfolioTable />
           </Card>
         </section>
 
