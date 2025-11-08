@@ -5,7 +5,6 @@ from typing import Optional, List, Dict
 
 from .config import (
     COOLOFF_DAYS,
-    DEFAULT_BASE_CCY,
     LADDER_VALUE_MULTIPLES,
     DRIFT_BAND_DEFAULT,
     MIN_TRADE_USD_DEFAULT,
@@ -224,7 +223,7 @@ def run_rules(portfolio_name: str = DEFAULT_PORTFOLIO_NAME) -> None:
         if not portfolio:
             return
         positions = (
-            db.query(Position).join(Asset, Asset.id == Position.asset_id).filter(Position.portfolio_id == portfolio.id, Asset.active == True).all()
+            db.query(Position).join(Asset, Asset.id == Position.asset_id).filter(Position.portfolio_id == portfolio.id, Asset.active).all()
         )
         for pos in positions:
             evaluate_take_profit(db, portfolio.id, pos)

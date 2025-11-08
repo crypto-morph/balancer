@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 
 from .db import SessionLocal
 from .models import Portfolio, Position, Asset, Price, FxRate
-from .rules import position_market_value_usd, position_cost_basis_usd, latest_price
+from .rules import position_market_value_usd, position_cost_basis_usd
 from .config import BASE_DIR, DEFAULT_PORTFOLIO_NAME
 
 
@@ -49,7 +49,7 @@ def export_portfolio_json(portfolio_name: str = DEFAULT_PORTFOLIO_NAME) -> Path:
         positions = (
             db.query(Position)
             .join(Asset, Asset.id == Position.asset_id)
-            .filter(Position.portfolio_id == pf.id, Asset.active == True)
+            .filter(Position.portfolio_id == pf.id, Asset.active)
             .all()
         )
         assets_payload: List[Dict[str, Any]] = []

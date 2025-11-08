@@ -5,9 +5,7 @@ from .config import (
     COINGECKO_BASE_URL,
     FRED_BASE_URL,
     FNG_BASE_URL,
-    COINGECKO_PER_PAGE,
     COINGECKO_API_KEY,
-    COINGECKO_THROTTLE_MS,
 )
 import time
 from requests import HTTPError

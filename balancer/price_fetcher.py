@@ -26,7 +26,7 @@ def ids_from_positions() -> List[str]:
         assets = (
             db.query(Asset)
             .join(Position, Position.asset_id == Asset.id)
-            .filter(Asset.active == True)
+            .filter(Asset.active)
             .all()
         )
         for a in assets:
