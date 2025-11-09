@@ -28,7 +28,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "vitest.config.ts"
   ],
+  "types": ["vitest/globals", "@testing-library/jest-dom"],
   "exclude": ["node_modules"]
 }

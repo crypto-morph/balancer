@@ -22,7 +22,7 @@ export async function GET() {
       })
       .filter(Boolean)
     return NextResponse.json({ alerts }, { status: 200 })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ alerts: [], error: 'failed_to_read_alerts' }, { status: 200 })
   }
 }

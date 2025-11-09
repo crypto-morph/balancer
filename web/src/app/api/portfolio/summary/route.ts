@@ -64,7 +64,7 @@ export async function GET() {
     } finally {
       db.close()
     }
-  } catch (e) {
+  } catch {
     return NextResponse.json({ total_gbp: 0, delta_1d_gbp: 0, delta_1m_gbp: 0, pct_1d_gbp: 0, pct_1m_gbp: 0 })
   }
 }

@@ -34,9 +34,9 @@ export async function GET() {
       let total_mv_btc = 0
 
       const assets = posRows.map((r) => {
-        const price_usd = ((qPriceLatest.get(r.asset_id, 'USD') as any)?.price) ?? 0
-        const price_gbp = ((qPriceLatest.get(r.asset_id, 'GBP') as any)?.price) ?? 0
-        const price_btc = ((qPriceLatest.get(r.asset_id, 'BTC') as any)?.price) ?? 0
+        const price_usd = ((qPriceLatest.get(r.asset_id, 'USD') as { price?: number } | undefined)?.price) ?? 0
+        const price_gbp = ((qPriceLatest.get(r.asset_id, 'GBP') as { price?: number } | undefined)?.price) ?? 0
+        const price_btc = ((qPriceLatest.get(r.asset_id, 'BTC') as { price?: number } | undefined)?.price) ?? 0
         const mv_usd = r.coins * price_usd
         const mv_gbp = r.coins * price_gbp
         const mv_btc = r.coins * price_btc
@@ -71,7 +71,7 @@ export async function GET() {
     } finally {
       db.close()
     }
-  } catch (e) {
+  } catch {
     return NextResponse.json({ as_of: null, assets: [], total_mv_usd: 0 }, { status: 200 })
   }
 }

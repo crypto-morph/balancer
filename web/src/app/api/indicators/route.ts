@@ -21,7 +21,7 @@ export async function GET() {
     } finally {
       db.close()
     }
-  } catch (e) {
+  } catch {
     return NextResponse.json({ indicators: {}, series: {} }, { status: 200 })
   }
 }
