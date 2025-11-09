@@ -49,6 +49,7 @@ export default defineConfig({
     timeout: 180 * 1000, // 3 minutes for CI (build + start takes longer)
     stdout: 'pipe',
     stderr: 'pipe',
+    cwd: process.cwd(), // Ensure we're in the web directory
   },
 })
 
