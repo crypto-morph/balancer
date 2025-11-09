@@ -24,7 +24,11 @@ import { SortableHeader } from "@/components/portfolio/sortable-header";
   is_fiat: boolean;
   coins: number;
   price_usd: number;
+  price_gbp?: number;
+  price_btc?: number;
   mv_usd: number;
+  mv_gbp?: number;
+  mv_btc?: number;
   cb_usd: number;
  };
 
@@ -120,8 +124,8 @@ export function PortfolioTable() {
   function totalForCcy(): number {
     if (!data) return 0;
     if (ccy === "USD") return data.total_mv_usd ?? 0;
-    if (ccy === "GBP") return (data as any).total_mv_gbp ?? 0;
-    return (data as any).total_mv_btc ?? 0;
+    if (ccy === "GBP") return (data as Portfolio & { total_mv_gbp?: number }).total_mv_gbp ?? 0;
+    return (data as Portfolio & { total_mv_btc?: number }).total_mv_btc ?? 0;
   }
 
   function weightFor(a: AssetRow): number {
@@ -141,14 +145,14 @@ export function PortfolioTable() {
 
   function priceFor(a: AssetRow): number {
     if (ccy === "USD") return a.price_usd ?? 0;
-    if (ccy === "GBP") return (a as any).price_gbp ?? 0;
-    return (a as any).price_btc ?? 0;
+    if (ccy === "GBP") return a.price_gbp ?? 0;
+    return a.price_btc ?? 0;
   }
 
   function mvFor(a: AssetRow): number {
     if (ccy === "USD") return a.mv_usd ?? 0;
-    if (ccy === "GBP") return (a as any).mv_gbp ?? 0;
-    return (a as any).mv_btc ?? 0;
+    if (ccy === "GBP") return a.mv_gbp ?? 0;
+    return a.mv_btc ?? 0;
   }
 
   function cbFor(a: AssetRow): number {
@@ -157,11 +161,11 @@ export function PortfolioTable() {
     // derive FX from per-asset prices to convert USD -> target ccy
     const p_usd = a.price_usd ?? 0;
     if (ccy === "GBP") {
-      const p_gbp = (a as any).price_gbp ?? 0;
+      const p_gbp = a.price_gbp ?? 0;
       const fx = p_gbp > 0 ? (p_usd / p_gbp) : 0; // USD per GBP
       return fx > 0 ? cb_usd / fx : 0;
     }
-    const p_btc = (a as any).price_btc ?? 0;
+    const p_btc = a.price_btc ?? 0;
     const fxb = p_btc > 0 ? (p_usd / p_btc) : 0; // USD per BTC
     return fxb > 0 ? cb_usd / fxb : 0;
   }
@@ -192,7 +196,7 @@ export function PortfolioTable() {
   async function applyEdit(symbol: string) {
     try {
       setSaving(true);
-      const payload: any = { symbol };
+      const payload: { symbol: string; coins?: number; avg_cost_per_unit?: number; cost_basis_usd?: number } = { symbol };
       const nCoins = toNumber(editCoins);
       const nAvg = toNumber(editAvg);
       const nCB = toNumber(editCB);
@@ -200,7 +204,7 @@ export function PortfolioTable() {
       if (nAvg !== null) payload.avg_cost_per_unit = nAvg;
       if (nCB !== null) {
         // convert from current display currency to USD if needed
-        const row = (data?.assets || []).find((r) => r.symbol === symbol) as any;
+        const row = (data?.assets || []).find((r) => r.symbol === symbol);
         let cb_usd = nCB;
         if (ccy === 'GBP') {
           const p_usd = row?.price_usd ?? 0;
@@ -279,7 +283,7 @@ export function PortfolioTable() {
                 columnKey="asset"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as any)}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
                 setDir={setSortDir}
               />
             </TableHead>
@@ -289,7 +293,7 @@ export function PortfolioTable() {
                 columnKey="coins"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as any)}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -300,7 +304,7 @@ export function PortfolioTable() {
                 columnKey="price"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as any)}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -311,7 +315,7 @@ export function PortfolioTable() {
                 columnKey="mv"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as any)}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -322,7 +326,7 @@ export function PortfolioTable() {
                 columnKey="cb"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as any)}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -333,7 +337,7 @@ export function PortfolioTable() {
                 columnKey="weight"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as any)}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -355,8 +359,8 @@ export function PortfolioTable() {
                     coingeckoId={a.coingecko_id}
                     caps={cgCaps}
                     price_usd={a.price_usd}
-                    price_gbp={(a as any).price_gbp}
-                    price_btc={(a as any).price_btc}
+                    price_gbp={a.price_gbp}
+                    price_btc={a.price_btc}
                     ccy={ccy}
                   />
                 </TableCell>
@@ -391,12 +395,12 @@ export function PortfolioTable() {
                       let prefill = cbUsd;
                       if (ccy === 'GBP') {
                         const p_usd = a.price_usd ?? 0;
-                        const p_gbp = (a as any).price_gbp ?? 0;
+                        const p_gbp = a.price_gbp ?? 0;
                         const fx = p_gbp > 0 ? (p_usd / p_gbp) : 0; // USD per GBP
                         prefill = fx > 0 ? cbUsd / fx : 0;
                       } else if (ccy === 'BTC') {
                         const p_usd = a.price_usd ?? 0;
-                        const p_btc = (a as any).price_btc ?? 0;
+                        const p_btc = a.price_btc ?? 0;
                         const fx = p_btc > 0 ? (p_usd / p_btc) : 0; // USD per BTC
                         prefill = fx > 0 ? cbUsd / fx : 0;
                       }
@@ -423,9 +427,9 @@ export function PortfolioTable() {
         </TableBody>
         {/* Totals row */}
         {(() => {
-          const totalMV = (data.assets || []).reduce((s, a: any) => s + mvFor(a), 0);
-          const totalCB = -Math.abs((data.assets || []).reduce((s, a: any) => s + cbFor(a), 0));
-          const totalPL = (data.assets || []).reduce((s, a: any) => s + (mvFor(a) - cbFor(a)), 0);
+          const totalMV = (data.assets || []).reduce((s, a: AssetRow) => s + mvFor(a), 0);
+          const totalCB = -Math.abs((data.assets || []).reduce((s, a: AssetRow) => s + cbFor(a), 0));
+          const totalPL = (data.assets || []).reduce((s, a: AssetRow) => s + (mvFor(a) - cbFor(a)), 0);
           return <FooterTotals ccy={ccy} totalMV={totalMV} totalCB={totalCB} totalPL={totalPL} />
         })()}
       </Table>

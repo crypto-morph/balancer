@@ -19,7 +19,7 @@ vi.mock('better-sqlite3', () => {
         }
         if (query.includes('SELECT price FROM prices')) {
           return {
-            get: (assetId: number, ccy?: string, time?: string) => {
+            get: (assetId: number, ccy?: string) => {
               if (ccy === 'GBP') return { price: 48000.0 }
               if (ccy === 'USD') return { price: 60000.0 }
               return { price: 48000.0 }

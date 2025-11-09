@@ -47,7 +47,7 @@ export function PortfolioPie() {
   }, []);
 
   const { slices, legend } = useMemo(() => {
-    const assets: Asset[] = (data?.assets || []).filter((a: any) => !a.is_stable && !a.is_fiat);
+    const assets: Asset[] = (data?.assets || []).filter((a: Asset) => !a.is_stable && !a.is_fiat);
     const tot = (data?.total_mv_gbp as number) || 0;
     const rows = assets
       .map((a) => ({
@@ -62,14 +62,13 @@ export function PortfolioPie() {
     if (otherValue > 0) top.push({ key: "Other", value: otherValue });
     const total = top.reduce((s, r) => s + r.value, 0) || 1;
     // build slices with cumulative angles
-    let acc = 0;
-    const sl = top.map((r, i) => {
+    const sl = top.reduce((accumulator, r, i) => {
       const frac = r.value / total;
-      const start = acc;
-      const end = acc + frac * Math.PI * 2;
-      acc = end;
-      return { key: r.key, start, end, color: COLORS[i % COLORS.length], frac };
-    });
+      const start = accumulator.length === 0 ? 0 : accumulator[accumulator.length - 1].end;
+      const end = start + frac * Math.PI * 2;
+      accumulator.push({ key: r.key, start, end, color: COLORS[i % COLORS.length], frac });
+      return accumulator;
+    }, [] as Array<{ key: string; start: number; end: number; color: string; frac: number }>);
     const legend = top.map((r, i) => ({ key: r.key, color: COLORS[i % COLORS.length], pct: (r.value / total) * 100 }));
     return { slices: sl, legend };
   }, [data]);
@@ -134,7 +133,7 @@ function Donut({ slices, size = 140, thickness = 24, onHover }: { slices: Array<
     let ang = Math.atan2(y, x);
     if (ang < 0) ang += Math.PI * 2;
     for (let i = 0; i < slices.length; i++) {
-      const s = slices[i] as any;
+      const s = slices[i];
       if (ang >= s.start && ang <= s.end) {
         const key = s.key || `Slice ${i+1}`;
         const pct = (s.frac || ((s.end - s.start) / (Math.PI * 2))) * 100;

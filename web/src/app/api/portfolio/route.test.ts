@@ -51,7 +51,6 @@ describe('GET /api/portfolio', () => {
   })
 
   it('returns portfolio data with assets', async () => {
-    const request = new NextRequest('http://localhost:3000/api/portfolio')
     const response = await GET()
     const data = await response.json()
 
@@ -96,7 +95,6 @@ describe('GET /api/portfolio', () => {
   })
 
   it('calculates market values correctly', async () => {
-    const request = new NextRequest('http://localhost:3000/api/portfolio')
     const response = await GET()
     const data = await response.json()
 
