@@ -13,7 +13,7 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "lint:md": "markdownlint-cli2 '../**/*.md' '!../**/node_modules/**' '!../web/node_modules/**' --fix"
+    "lint:md": "markdownlint-cli2 '../**/*.md' '!../**/node_modules/**' '!../web/node_modules/**' '!../web/README.md' --fix"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
