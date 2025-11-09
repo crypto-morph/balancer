@@ -1,14 +1,10 @@
 """Tests for exporter module."""
-import pytest
 import json
-from pathlib import Path
 from balancer.exporter import (
     latest_price_usd,
     latest_price_ccy,
     latest_fx,
-    export_portfolio_json,
 )
-from balancer.models import Asset, Portfolio, Position, Price, FxRate
 
 
 def test_latest_price_usd(test_db, sample_assets, sample_prices):

@@ -1,9 +1,5 @@
 """Tests for alerts module."""
-import pytest
 import json
-from pathlib import Path
-from balancer.alerts import log_alert
-from balancer.config import LOG_PATH
 
 
 def test_log_alert(tmp_path, monkeypatch):

@@ -1,7 +1,5 @@
 """Tests for price_fetcher module."""
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, UTC
+from unittest.mock import Mock, patch
 from balancer.price_fetcher import (
     read_mapping_ids,
     ids_from_positions,
@@ -11,7 +9,7 @@ from balancer.price_fetcher import (
     derive_and_store_btc_prices,
     run_price_fetch,
 )
-from balancer.models import Asset, Position, Price, FxRate
+from balancer.models import Asset, Price, FxRate
 
 
 def test_read_mapping_ids(tmp_path, monkeypatch):

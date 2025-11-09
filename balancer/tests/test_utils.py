@@ -1,5 +1,4 @@
 """Tests for utils module."""
-import pytest
 from balancer.utils import parse_money_gbp, parse_float, clean_name
 
 

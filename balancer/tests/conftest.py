@@ -32,7 +32,7 @@ def ensure_real_db_schema():
     This is a safety net in case any code path uses the real database."""
     from balancer.db import Base, engine
     # Import all models to register them with Base
-    from balancer import models
+    from balancer import models  # noqa: F401
     # Create schema in the real database (if it doesn't exist)
     # This won't hurt if tables already exist
     try:

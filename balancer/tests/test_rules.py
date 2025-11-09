@@ -1,5 +1,4 @@
 """Tests for rules module."""
-import pytest
 from datetime import datetime, timedelta, UTC
 from balancer.rules import (
     latest_price,
@@ -13,7 +12,7 @@ from balancer.rules import (
     evaluate_drift,
     run_rules,
 )
-from balancer.models import Alert, Asset, Portfolio, Position, Price, FxRate, Target
+from balancer.models import Alert, Asset, Price, FxRate, Target
 
 
 def test_latest_price(test_db, sample_assets, sample_prices):

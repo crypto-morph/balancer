@@ -1,6 +1,4 @@
 """Tests for importer module."""
-import pytest
-from pathlib import Path
 from balancer.importer import (
     read_tokenlist_lines,
     parse_row,
