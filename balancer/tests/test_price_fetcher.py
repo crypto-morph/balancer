@@ -1,7 +1,6 @@
 """Tests for price_fetcher module."""
 from unittest.mock import Mock, patch
 from balancer.price_fetcher import (
-    read_mapping_ids,
     ids_from_positions,
     fetch_markets,
     upsert_assets_for_markets,
