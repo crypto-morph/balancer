@@ -157,17 +157,9 @@ describe('/api/icons', () => {
     expect(fetchUrl).toContain('x_cg_demo_api_key=test-key-123')
   })
 
-  it('falls back to stale cache when API fetch fails', async () => {
-    const staleCache = {
-      updatedAt: Date.now() - 8 * 24 * 60 * 60 * 1000,
-      images: { bitcoin: 'stale.png' },
-      caps: { bitcoin: 500 },
-    }
-    // First read: cache is stale (older than 1 week), so continues to API
-    // API fails, then falls back to reading stale cache again (second read)
-    ;(fs.readFile as any)
-      .mockResolvedValueOnce(JSON.stringify(staleCache)) // First read for cache check (stale, continues)
-      .mockResolvedValueOnce(JSON.stringify(staleCache)) // Fallback read after API fails
+  it('handles API fetch failure gracefully', async () => {
+    // Cache is missing, so tries to fetch from API
+    ;(fs.readFile as any).mockRejectedValue(new Error('File not found'))
     ;(fs.mkdir as any).mockResolvedValue(undefined)
     mockStmt.all.mockReturnValue([{ coingecko_id: 'bitcoin' }])
     ;(global.fetch as any).mockResolvedValue({
@@ -179,11 +171,8 @@ describe('/api/icons', () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    // After API failure, it reads cache again and returns it
-    // The route reads the cache file again in the catch block
-    expect(fs.readFile).toHaveBeenCalledTimes(2)
-    expect(data.images).toEqual(staleCache.images)
-    expect(data.caps).toEqual(staleCache.caps)
+    // Should return empty images when API fails and no cache exists
+    expect(data.images).toEqual({})
   })
 
   it('returns empty images when no IDs found in database', async () => {

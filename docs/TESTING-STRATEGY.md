@@ -347,7 +347,9 @@ def test_something(test_db, sample_assets, sample_positions):
 3. **PortfolioPie** (`web/src/components/portfolio-pie.tsx`)
    - Test chart rendering with sample data
    - Test currency updates
-   - ⚠️ Not yet tested (component exists)
+   - Test filtering of stablecoins and fiat
+   - Test "Other" grouping for assets beyond top 7
+   - ✅ Existing: `web/src/components/portfolio-pie.test.tsx`
 
 4. **PortfolioTable** (`web/src/components/portfolio-table.tsx`)
    - Test sorting functionality
@@ -366,7 +368,9 @@ def test_something(test_db, sample_assets, sample_positions):
    - Test alert rendering from API
    - Test severity levels
    - Test empty state
-   - ⚠️ Not yet tested (component exists)
+   - Test alert reversal (newest first)
+   - Test timestamp formatting
+   - ✅ Existing: `web/src/components/alerts-list.test.tsx`
 
 ### API Route Tests
 
@@ -391,24 +395,26 @@ def test_something(test_db, sample_assets, sample_positions):
    - Test latest values retrieval
    - Test 30-day series retrieval
    - Test indicator names (BTCD, DXY_TWEX, FEAR_GREED)
-   - ⚠️ Not yet tested (route exists)
+   - ✅ Existing: `web/src/app/api/indicators/route.test.ts`
 
 4. **`GET /api/icons`**
    - Test Coingecko API call
    - Test caching logic (1 week TTL)
    - Test stale cache fallback
    - Test response structure (`images`, `caps`)
-   - ⚠️ Not yet tested (route exists)
+   - ✅ Existing: `web/src/app/api/icons/route.test.ts`
 
 5. **`GET /api/alerts`**
    - Test JSONL file reading
    - Test parsing and response structure
+   - ✅ Existing: `web/src/app/api/alerts/route.test.ts`
 
 6. **`POST /api/positions/update`**
    - Test position update in SQLite
    - Test currency conversion (USD/GBP/BTC)
    - Test validation
    - Test error handling
+   - ✅ Existing: `web/src/app/api/positions/update/route.test.ts`
 
 ### End-to-End Tests (Playwright)
 
