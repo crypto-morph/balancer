@@ -334,16 +334,20 @@ def test_something(test_db, sample_assets, sample_positions):
    - Test thousands separator formatting
    - Test color coding (positive/negative)
    - Test currency toggle updates
+   - Test loading and error states
+   - ✅ Existing: `web/src/components/summary-card.test.tsx`
 
 2. **IndicatorsCard** (`web/src/components/indicators-card.tsx`)
    - Test sparkline rendering (30-day series)
    - Test DXY conditional display
    - Test single-point series (flat line)
    - Test API data loading states
+   - ✅ Existing: `web/src/components/indicators-card.test.tsx`
 
 3. **PortfolioPie** (`web/src/components/portfolio-pie.tsx`)
    - Test chart rendering with sample data
    - Test currency updates
+   - ⚠️ Not yet tested (component exists)
 
 4. **PortfolioTable** (`web/src/components/portfolio-table.tsx`)
    - Test sorting functionality
@@ -356,11 +360,13 @@ def test_something(test_db, sample_assets, sample_positions):
    - Test inline editing (Coins, Cost Basis)
    - Test currency conversion on Cost Basis entry
    - Test numeric paste normalization
+   - ⚠️ Not yet tested (component exists)
 
 5. **AlertsList** (`web/src/components/alerts-list.tsx`)
    - Test alert rendering from API
    - Test severity levels
    - Test empty state
+   - ⚠️ Not yet tested (component exists)
 
 ### API Route Tests
 
@@ -374,21 +380,25 @@ def test_something(test_db, sample_assets, sample_positions):
    - Test database query
    - Test response structure (USD/GBP/BTC prices, market values, `cb_usd`)
    - Test error handling
+   - ✅ Existing: `web/src/app/api/portfolio/route.test.ts`
 
 2. **`GET /api/portfolio/summary`**
    - Test totals calculation (`total_gbp`, `cost_basis_gbp`, `net_gbp`)
    - Test delta calculations
+   - ✅ Existing: `web/src/app/api/portfolio/summary/route.test.ts`
 
 3. **`GET /api/indicators`**
    - Test latest values retrieval
    - Test 30-day series retrieval
    - Test indicator names (BTCD, DXY_TWEX, FEAR_GREED)
+   - ⚠️ Not yet tested (route exists)
 
 4. **`GET /api/icons`**
    - Test Coingecko API call
    - Test caching logic (1 week TTL)
    - Test stale cache fallback
    - Test response structure (`images`, `caps`)
+   - ⚠️ Not yet tested (route exists)
 
 5. **`GET /api/alerts`**
    - Test JSONL file reading
@@ -402,7 +412,11 @@ def test_something(test_db, sample_assets, sample_positions):
 
 ### End-to-End Tests (Playwright)
 
-**Location**: `web/e2e/` or `web/tests/e2e/`
+**Location**: `web/e2e/*.spec.ts`
+
+**Existing Tests**:
+- ✅ `web/e2e/dashboard.spec.ts` - Tests dashboard page loads and displays main components
+- ✅ `web/e2e/portfolio-table.spec.ts` - Tests portfolio table interactions
 
 **Setup**:
 1. Add to `web/package.json`:

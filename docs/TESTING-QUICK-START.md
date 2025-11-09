@@ -74,10 +74,13 @@ npm run test:e2e:ui
 ```
 
 ### Test Files
-- `web/src/test/setup.ts` - Test setup and mocks
-- `web/src/components/*.test.tsx` - Component tests
-- `web/src/app/api/**/route.test.ts` - API route tests
-- `web/e2e/*.spec.ts` - End-to-end tests
+- `web/src/test/setup.ts` - Test setup and mocks (global fetch mocking, CSS mocking)
+- `web/src/components/summary-card.test.tsx` - SummaryCard component tests
+- `web/src/components/indicators-card.test.tsx` - IndicatorsCard component tests
+- `web/src/app/api/portfolio/route.test.ts` - Portfolio API route tests
+- `web/src/app/api/portfolio/summary/route.test.ts` - Portfolio summary API route tests
+- `web/e2e/dashboard.spec.ts` - Dashboard E2E tests
+- `web/e2e/portfolio-table.spec.ts` - Portfolio table E2E tests
 
 ## CI/CD
 
@@ -96,9 +99,10 @@ Tests run automatically on push/PR via GitHub Actions (`.github/workflows/test.y
 - Verify all dependencies are installed
 
 ### Frontend Tests
-- Ensure Node.js 18+ is installed
+- Ensure Node.js 20+ is installed (required for Next.js 16+)
 - Clear `node_modules` and reinstall if issues occur
 - For E2E tests, ensure dev server can start on port 3000
+- E2E tests automatically start the dev server via Playwright's `webServer` config
 
 ### Common Issues
 - **Import errors**: Check that paths match your project structure
