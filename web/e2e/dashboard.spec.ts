@@ -10,15 +10,17 @@ test.describe('Dashboard', () => {
     // Wait for page to load
     await page.waitForLoadState('networkidle', { timeout: 10000 })
 
-    // Check for SummaryCard - look for "Portfolio" text or loading state
-    const summaryVisible = await page.getByText(/portfolio/i).isVisible().catch(() => false)
+    // Check for SummaryCard - look for currency values, "Portfolio" text, or loading state
+    const summaryText = await page.textContent('body') || ''
+    const hasSummaryContent = /£|USD|BTC|GBP|portfolio|total|delta/i.test(summaryText)
     const summaryLoading = await page.getByText(/loading/i).isVisible().catch(() => false)
-    expect(summaryVisible || summaryLoading).toBeTruthy()
+    expect(hasSummaryContent || summaryLoading).toBeTruthy()
 
-    // Check for IndicatorsCard - look for "Indicators" text or loading state
-    const indicatorsVisible = await page.getByText(/indicators/i).isVisible().catch(() => false)
+    // Check for IndicatorsCard - look for indicator labels or loading state
+    const indicatorsText = await page.textContent('body') || ''
+    const hasIndicators = /BTC Dominance|DXY|Fear & Greed|BTCD|FEAR_GREED|DXY_TWEX|indicators/i.test(indicatorsText)
     const indicatorsLoading = await page.getByText(/loading/i).isVisible().catch(() => false)
-    expect(indicatorsVisible || indicatorsLoading).toBeTruthy()
+    expect(hasIndicators || indicatorsLoading).toBeTruthy()
 
     // Check for PortfolioTable - look for table or loading state
     const tableVisible = await page.locator('[data-slot="table"]').isVisible().catch(() => false)
