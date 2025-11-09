@@ -22,6 +22,17 @@ A portfolio advisory tool for crypto. Advisory-only (no auto-trading) with hourl
 - Frontend: Next.js + Tailwind + shadcn/ui.
 - Runbook and detailed instructions live in docs/spec.md.
 
+### One-liner with balancerctl
+
+- Use the helper script to start both services and run tests:
+
+```bash
+./balancerctl start          # start frontend (Next.js dev) and backend loop
+./balancerctl status         # check PIDs
+./balancerctl test all       # run Python unit tests and Playwright E2E tests
+./balancerctl stop           # stop both services
+```
+
 ## Running the hourly pipeline
 
 - Ensure `.env` is set (see Environment Variables below) and DB path is writable.
@@ -69,6 +80,57 @@ npm run dev
   - If GBP/BTC values show as zero, re-run the backend exporter to regenerate `portfolio.json` with multi-currency fields:
     - `. .venv/bin/activate && python -m balancer.runner`
   - The dev server auto-reloads on file edits.
+
+## balancerctl (Process Manager)
+
+`balancerctl` is a small utility to manage the dev processes and tests safely without killing unrelated editors/terminals.
+
+- Requirements:
+  - Python venv at `.venv/` (used automatically if present)
+  - Node 18+ with npm installed (frontend)
+
+- Commands:
+  - `start` — start frontend and backend
+  - `stop` — stop frontend and backend
+  - `restart` — restart both
+  - `status` — show whether FE/BE are running and their PIDs
+  - `start-fe` / `stop-fe` — manage only frontend
+  - `start-be` / `stop-be` — manage only backend
+  - `start-be-loop [interval]` — run backend `run_once()` on an interval (default 300s)
+  - `test unit` — run Python unit tests (pytest)
+  - `test e2e` — run Playwright tests (starts dev server automatically)
+  - `test all` — run unit, then E2E tests
+
+- Examples:
+
+```bash
+# prefer venv if available
+python -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
+
+# install frontend deps once
+(cd web && npm install)
+
+# run services
+./balancerctl start
+./balancerctl status
+
+# run tests
+./balancerctl test unit
+./balancerctl test e2e
+./balancerctl test all
+
+# pass args through to Playwright (after --)
+./balancerctl test e2e -- --grep "portfolio"
+
+# stop services
+./balancerctl stop
+```
+
+- Implementation details:
+  - Uses PID files in `.pids/` with logs: `.pids/frontend.log`, `.pids/backend.log`
+  - Avoids `pkill`; only signals PIDs it started
+  - Frontend runs `npm run dev` in `web/` at `http://localhost:3000`
+  - Backend runs `balancer.runner.run_once()` in a loop; interval configurable
 
 ## Initial Data (prototype)
 
