@@ -5,9 +5,16 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MarketCapBadge } from "@/components/market-cap-badge";
+import { formatMoney as _formatMoney, formatPrice as _formatPrice, formatCoins as _formatCoins, moneyClass as _moneyClass } from "@/components/portfolio/format";
+import { CoinsCell } from "@/components/portfolio/coins-cell";
+import { CostBasisCell } from "@/components/portfolio/cost-basis-cell";
+import { FooterTotals } from "@/components/portfolio/footer-totals";
+import { MarketCapLegend } from "@/components/portfolio/market-cap-legend";
+import { WeightCell } from "@/components/portfolio/weight-cell";
+import { AssetCell } from "@/components/portfolio/asset-cell";
+import { toNumber } from "@/components/portfolio/normalize";
+import { SortableHeader } from "@/components/portfolio/sortable-header";
 
  type AssetRow = {
   symbol: string;
@@ -108,24 +115,7 @@ export function PortfolioTable() {
     return arr;
   }, [nonStables, sortKey, sortDir, ccy, data]);
 
-  function header(label: string, key: typeof sortKey, alignRight = false) {
-    const active = sortKey === key;
-    const dir = active ? (sortDir === "asc" ? "↑" : "↓") : "";
-    return (
-      <button
-        type="button"
-        className={`flex items-center gap-1 ${alignRight ? "justify-end w-full" : ""}`}
-        onClick={() => {
-          if (active) setSortDir(sortDir === "asc" ? "desc" : "asc");
-          else { setSortKey(key); setSortDir(key === "asset" ? "asc" : "desc"); }
-        }}
-        title={active ? `Sorting ${sortDir}` : "Click to sort"}
-      >
-        <span>{label}</span>
-        <span className="text-xs text-zinc-500">{dir}</span>
-      </button>
-    );
-  }
+  // header rendering handled by SortableHeader component
 
   function totalForCcy(): number {
     if (!data) return 0;
@@ -177,27 +167,19 @@ export function PortfolioTable() {
   }
 
   function formatMoney(value: number): string {
-    const v = value ?? 0;
-    if (ccy === "USD") return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-    if (ccy === "GBP") return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-    return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 8 }).format(v)} BTC`;
+    return _formatMoney(ccy, value);
   }
 
   function formatPrice(value: number): string {
-    const v = value ?? 0;
-    if (ccy === "USD") return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-    if (ccy === "GBP") return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-    return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 8 }).format(v)} BTC`;
+    return _formatPrice(ccy, value);
   }
 
   function formatCoins(value: number, decimals: number): string {
-    const v = value ?? 0;
-    const places = Math.max(0, decimals || 0);
-    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: places }).format(v);
+    return _formatCoins(value, decimals);
   }
 
   function moneyClass(value: number): string {
-    return value < 0 ? "text-red-600" : value > 0 ? "text-emerald-700" : "";
+    return _moneyClass(value);
   }
 
   function iconUrlForRow(a: AssetRow): string | undefined {
@@ -206,74 +188,14 @@ export function PortfolioTable() {
     return `https://cryptoicon-api.vercel.app/api/icon/${s}`;
   }
 
-  function marketCapFor(a: AssetRow): number {
-    const capUsd = a.coingecko_id ? cgCaps[a.coingecko_id] ?? 0 : 0;
-    if (!capUsd) return 0;
-    if (ccy === 'USD') return capUsd;
-    const p_usd = a.price_usd ?? 0;
-    if (ccy === 'GBP') {
-      const p_gbp = (a as any).price_gbp ?? 0;
-      const usd_per_gbp = p_gbp > 0 ? (p_usd / p_gbp) : 0;
-      return usd_per_gbp > 0 ? capUsd / usd_per_gbp : 0;
-    }
-    const p_btc = (a as any).price_btc ?? 0;
-    const usd_per_btc = p_btc > 0 ? (p_usd / p_btc) : 0;
-    return usd_per_btc > 0 ? capUsd / usd_per_btc : 0;
-  }
-
-  function marketCapBand(capUsd: number): { label: string; className: string } {
-    // thresholds in USD
-    if (capUsd >= 10_000_000_000) return { label: 'huge', className: 'bg-emerald-100 text-emerald-700' };
-    if (capUsd >= 2_000_000_000) return { label: 'large', className: 'bg-green-100 text-green-700' };
-    if (capUsd >= 300_000_000) return { label: 'medium', className: 'bg-amber-100 text-amber-700' };
-    if (capUsd >= 50_000_000) return { label: 'small', className: 'bg-yellow-100 text-yellow-700' };
-    return { label: 'micro', className: 'bg-zinc-200 text-zinc-800' };
-  }
-
-  function formatCompact(n: number): string {
-    if (!n) return '0';
-    const abs = Math.abs(n);
-    if (abs >= 1_000_000_000) return `${(n/1_000_000_000).toFixed(2)}B`;
-    if (abs >= 1_000_000) return `${(n/1_000_000).toFixed(2)}M`;
-    if (abs >= 1_000) return `${(n/1_000).toFixed(2)}K`;
-    return n.toFixed(2);
-  }
 
   async function applyEdit(symbol: string) {
     try {
       setSaving(true);
       const payload: any = { symbol };
-      // normalize numbers from various locales (commas or dots as thousand/decimal)
-      const normalize = (s: string) => {
-        let x = s.trim();
-        if (!x) return x;
-        x = x.replace(/[$£€\s]/g, "");
-        // keep only digits, dot, comma
-        x = x.replace(/[^0-9.,-]/g, "");
-        const lastDot = x.lastIndexOf('.');
-        const lastComma = x.lastIndexOf(',');
-        // decide decimal separator as the rightmost of dot/comma
-        const decIdx = Math.max(lastDot, lastComma);
-        let intPart = x;
-        let fracPart = "";
-        if (decIdx > 0) {
-          intPart = x.slice(0, decIdx);
-          fracPart = x.slice(decIdx + 1);
-        }
-        // remove all separators from intPart
-        intPart = intPart.replace(/[.,]/g, "");
-        // remove all separators from fracPart (just in case), then rebuild with '.'
-        fracPart = fracPart.replace(/[.,]/g, "");
-        return decIdx > 0 ? `${intPart}.${fracPart}` : intPart;
-      };
-      const toNum = (s: string) => {
-        if (s.trim() === "") return null;
-        const n = Number(normalize(s));
-        return Number.isFinite(n) ? n : null;
-      };
-      const nCoins = toNum(editCoins);
-      const nAvg = toNum(editAvg);
-      const nCB = toNum(editCB);
+      const nCoins = toNumber(editCoins);
+      const nAvg = toNumber(editAvg);
+      const nCB = toNumber(editCB);
       if (nCoins !== null) payload.coins = nCoins;
       if (nAvg !== null) payload.avg_cost_per_unit = nAvg;
       if (nCB !== null) {
@@ -351,24 +273,75 @@ export function PortfolioTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{header("Asset", "asset")}</TableHead>
-            <TableHead className="text-right">{header("Coins", "coins", true)}</TableHead>
-            <TableHead className="text-right">{header(`Price (${ccy})`, "price", true)}</TableHead>
-            <TableHead className="text-right">{header(`Market Value (${ccy})`, "mv", true)}</TableHead>
-            <TableHead className="text-right">{header(`Cost Basis (${ccy})`, "cb", true)}</TableHead>
-            <TableHead className="text-right">{header("Weight", "weight", true)}</TableHead>
+            <TableHead>
+              <SortableHeader
+                label="Asset"
+                columnKey="asset"
+                activeKey={sortKey}
+                dir={sortDir}
+                setKey={(k) => setSortKey(k as any)}
+                setDir={setSortDir}
+              />
+            </TableHead>
+            <TableHead className="text-right">
+              <SortableHeader
+                label="Coins"
+                columnKey="coins"
+                activeKey={sortKey}
+                dir={sortDir}
+                setKey={(k) => setSortKey(k as any)}
+                setDir={setSortDir}
+                alignRight
+              />
+            </TableHead>
+            <TableHead className="text-right">
+              <SortableHeader
+                label={`Price (${ccy})`}
+                columnKey="price"
+                activeKey={sortKey}
+                dir={sortDir}
+                setKey={(k) => setSortKey(k as any)}
+                setDir={setSortDir}
+                alignRight
+              />
+            </TableHead>
+            <TableHead className="text-right">
+              <SortableHeader
+                label={`Market Value (${ccy})`}
+                columnKey="mv"
+                activeKey={sortKey}
+                dir={sortDir}
+                setKey={(k) => setSortKey(k as any)}
+                setDir={setSortDir}
+                alignRight
+              />
+            </TableHead>
+            <TableHead className="text-right">
+              <SortableHeader
+                label={`Cost Basis (${ccy})`}
+                columnKey="cb"
+                activeKey={sortKey}
+                dir={sortDir}
+                setKey={(k) => setSortKey(k as any)}
+                setDir={setSortDir}
+                alignRight
+              />
+            </TableHead>
+            <TableHead className="text-right">
+              <SortableHeader
+                label="Weight"
+                columnKey="weight"
+                activeKey={sortKey}
+                dir={sortDir}
+                setKey={(k) => setSortKey(k as any)}
+                setDir={setSortDir}
+                alignRight
+              />
+            </TableHead>
           </TableRow>
         </TableHeader>
         {/* Market cap legend */}
-        <caption className="caption-bottom text-xs text-zinc-500 mt-2">
-          <span className="inline-flex items-center gap-2">
-            <span className="px-1.5 py-[2px] rounded bg-zinc-200 text-zinc-800">micro</span>
-            <span className="px-1.5 py-[2px] rounded bg-yellow-100 text-yellow-700">small</span>
-            <span className="px-1.5 py-[2px] rounded bg-amber-100 text-amber-700">medium</span>
-            <span className="px-1.5 py-[2px] rounded bg-green-100 text-green-700">large</span>
-            <span className="px-1.5 py-[2px] rounded bg-emerald-100 text-emerald-700">huge</span>
-          </span>
-        </caption>
+        <MarketCapLegend />
         <TableBody>
           {sortedNonStables.map((a) => {
             const isEditing = editing === a.symbol;
@@ -376,63 +349,27 @@ export function PortfolioTable() {
             return (
               <TableRow key={a.symbol}>
                 <TableCell className="font-medium">
-                  <span className="inline-flex items-center gap-2">
-                    <img
-                      src={iconUrlForRow(a)}
-                      alt={a.symbol}
-                      className="h-5 w-5 rounded-full border border-zinc-200 bg-white"
-                      onError={(e) => {
-                        // hide broken icons
-                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                    {a.symbol}
-                    <MarketCapBadge
-                      coingeckoId={a.coingecko_id}
-                      caps={cgCaps}
-                      price_usd={a.price_usd}
-                      price_gbp={(a as any).price_gbp}
-                      price_btc={(a as any).price_btc}
-                      ccy={ccy}
-                    />
-                  </span>
+                  <AssetCell
+                    symbol={a.symbol}
+                    iconUrl={iconUrlForRow(a)}
+                    coingeckoId={a.coingecko_id}
+                    caps={cgCaps}
+                    price_usd={a.price_usd}
+                    price_gbp={(a as any).price_gbp}
+                    price_btc={(a as any).price_btc}
+                    ccy={ccy}
+                  />
                 </TableCell>
                 <TableCell className="text-right">
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      value={editCoins}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditCoins(e.target.value)}
-                      className="h-8 text-right"
-                      placeholder={a.coins.toFixed(decimals)}
-                    />
-                  ) : (
-                    formatCoins(a.coins, decimals)
-                  )}
+                  <CoinsCell isEditing={isEditing} coins={a.coins} decimals={decimals} editCoins={editCoins} setEditCoins={setEditCoins} />
                 </TableCell>
                 <TableCell className="text-right">{formatPrice(priceFor(a))}</TableCell>
                 <TableCell className="text-right">{formatMoney(mvFor(a))}</TableCell>
                 <TableCell className="text-right">
-                  {isEditing ? (
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      value={editCB}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditCB(e.target.value)}
-                      className="h-8 text-right"
-                      placeholder={`Cost Basis (${ccy})`}
-                    />
-                  ) : (
-                    <span className={moneyClass(-Math.abs(cbFor(a)))}>{formatMoney(-Math.abs(cbFor(a)))}</span>
-                  )}
+                  <CostBasisCell isEditing={isEditing} ccy={ccy} cbDisplay={-Math.abs(cbFor(a))} editCB={editCB} setEditCB={setEditCB} />
                 </TableCell>
                 <TableCell className="text-right">
-                  {(() => {
-                    const tot = totalForCcy() || 0;
-                    const mv = mvFor(a) || 0;
-                    return tot > 0 ? `${((mv / tot) * 100).toFixed(2)}%` : "-";
-                  })()}
+                  <WeightCell mv={mvFor(a) || 0} total={totalForCcy() || 0} />
                 </TableCell>
                 <TableCell className="text-right">
                   {isEditing ? (
@@ -485,30 +422,12 @@ export function PortfolioTable() {
           )}
         </TableBody>
         {/* Totals row */}
-        <tfoot>
-          <TableRow>
-            <TableCell className="font-medium">Total</TableCell>
-            <TableCell></TableCell>
-            <TableCell></TableCell>
-            <TableCell className="text-right font-semibold">{formatMoney((data.assets || []).reduce((s, a:any) => s + mvFor(a), 0))}</TableCell>
-            <TableCell className="text-right font-semibold">
-              {(() => { const v = -Math.abs((data.assets || []).reduce((s, a:any) => s + cbFor(a), 0)); return <span className={moneyClass(v)}>{formatMoney(v)}</span>; })()}
-            </TableCell>
-            <TableCell className="text-right">100%</TableCell>
-            <TableCell></TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell className="font-medium">Profit / Loss</TableCell>
-            <TableCell></TableCell>
-            <TableCell></TableCell>
-            <TableCell className="text-right font-semibold">
-              {(() => { const v = (data.assets || []).reduce((s, a:any) => s + (mvFor(a) - cbFor(a)), 0); return <span className={moneyClass(v)}>{formatMoney(v)}</span>; })()}
-            </TableCell>
-            <TableCell></TableCell>
-            <TableCell></TableCell>
-            <TableCell></TableCell>
-          </TableRow>
-        </tfoot>
+        {(() => {
+          const totalMV = (data.assets || []).reduce((s, a: any) => s + mvFor(a), 0);
+          const totalCB = -Math.abs((data.assets || []).reduce((s, a: any) => s + cbFor(a), 0));
+          const totalPL = (data.assets || []).reduce((s, a: any) => s + (mvFor(a) - cbFor(a)), 0);
+          return <FooterTotals ccy={ccy} totalMV={totalMV} totalCB={totalCB} totalPL={totalPL} />
+        })()}
       </Table>
     </Card>
   );
