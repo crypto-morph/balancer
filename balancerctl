@@ -203,6 +203,17 @@ def main() -> int:
     be = sub.add_parser("start-be-loop", help="Start backend with custom interval")
     be.add_argument("interval", type=int, nargs="?", default=300, help="Interval seconds between run_once calls (default 300)")
 
+    sub.add_parser("import", help="Import positions from initial tokenlist")
+    sub.add_parser("run-once", help="Run the full pipeline once (prices, indicators, rules, export)")
+
+    bf = sub.add_parser("backfill", help="Backfill historical prices from Coingecko")
+    bf.add_argument("--days", default="max", help="Days range for Coingecko market_chart (e.g. 90, 365, max)")
+    bf.add_argument("--ccy", default="USD,GBP,BTC", help="Comma-separated currencies to store (subset of USD,GBP,BTC)")
+
+    sub.add_parser("compact", help="Run compaction (prices + fx) now")
+    sub.add_parser("verify", help="Verify data coverage and print a JSON summary")
+    sub.add_parser("repair", help="Attempt to repair gaps by backfilling last 365 days, then compact")
+
     args = p.parse_args()
 
     if args.cmd == "start":
@@ -248,6 +259,36 @@ def main() -> int:
         if code1 != 0:
             return code1
         return test_e2e([])
+
+    if args.cmd == "import":
+        code = "from balancer.importer import import_tokenlist; import_tokenlist()"
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+    if args.cmd == "run-once":
+        code = "from balancer.runner import run_once; run_once()"
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+    if args.cmd == "backfill":
+        vs_list = [x.strip().upper() for x in (args.ccy or "").split(",") if x.strip()]
+        code = (
+            "from balancer.backfill import backfill_prices; "
+            f"backfill_prices(days='{args.days}', vs_list={vs_list})"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+
+    if args.cmd == "compact":
+        code = "from balancer.compaction import compact_all; compact_all()"
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+    if args.cmd == "verify":
+        code = (
+            "import json; from balancer.health import verify_health; "
+            "print(json.dumps(verify_health(), indent=2))"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+    if args.cmd == "repair":
+        code = (
+            "from balancer.backfill import backfill_prices; from balancer.compaction import compact_all; "
+            "backfill_prices(days='365'); compact_all()"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
 
     p.error("Unknown command")
     return 2

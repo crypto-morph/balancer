@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatMoney as _formatMoney, formatPrice as _formatPrice, formatCoins as _formatCoins, moneyClass as _moneyClass } from "@/components/portfolio/format";
 import { CoinsCell } from "@/components/portfolio/coins-cell";
-import { CostBasisCell } from "@/components/portfolio/cost-basis-cell";
 import { FooterTotals } from "@/components/portfolio/footer-totals";
 import { MarketCapLegend } from "@/components/portfolio/market-cap-legend";
 import { WeightCell } from "@/components/portfolio/weight-cell";
 import { AssetCell } from "@/components/portfolio/asset-cell";
 import { toNumber } from "@/components/portfolio/normalize";
 import { SortableHeader } from "@/components/portfolio/sortable-header";
+import { ChangeCell } from "@/components/portfolio/change-cell";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
  type AssetRow = {
   symbol: string;
@@ -54,8 +55,9 @@ export function PortfolioTable() {
   const [editCB, setEditCB] = useState<string>("");
   const [cgImages, setCgImages] = useState<Record<string, string>>({}); // coingecko_id -> image URL
   const [cgCaps, setCgCaps] = useState<Record<string, number>>({}); // coingecko_id -> market cap USD
-  const [sortKey, setSortKey] = useState<"asset"|"coins"|"price"|"mv"|"cb"|"weight">("weight");
+  const [sortKey, setSortKey] = useState<"asset"|"coins"|"price"|"profit"|"weight">("weight");
   const [sortDir, setSortDir] = useState<"asc"|"desc">("desc");
+  const [changes, setChanges] = useState<Record<string, { pcts: Record<string, number|null> }>>({});
 
   useEffect(() => {
     async function load() {
@@ -71,6 +73,22 @@ export function PortfolioTable() {
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, []);
+
+  // Fetch percentage changes computed from SQLite history
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/changes?ccy=${ccy}`, { cache: 'no-store' });
+        if (!r.ok) return;
+        const j = await r.json() as { ok: boolean, changes?: Record<string, any> };
+        if (!cancelled && j.ok && j.changes) {
+          setChanges(j.changes as any);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true };
+  }, [ccy, data?.as_of]);
 
   // Fetch icon URLs via backend proxy to reduce client-side calls and handle API key
   useEffect(() => {
@@ -107,10 +125,8 @@ export function PortfolioTable() {
           return (a.coins - b.coins) * dir;
         case "price":
           return (priceFor(a) - priceFor(b)) * dir;
-        case "mv":
-          return (mvFor(a) - mvFor(b)) * dir;
-        case "cb":
-          return (cbFor(a) - cbFor(b)) * dir;
+        case "profit":
+          return ((mvFor(a) - cbFor(a)) - (mvFor(b) - cbFor(b))) * dir;
         case "weight":
         default:
           return (weightFor(a) - weightFor(b)) * dir;
@@ -168,6 +184,10 @@ export function PortfolioTable() {
     const p_btc = a.price_btc ?? 0;
     const fxb = p_btc > 0 ? (p_usd / p_btc) : 0; // USD per BTC
     return fxb > 0 ? cb_usd / fxb : 0;
+  }
+
+  function profitFor(a: AssetRow): number {
+    return (mvFor(a) - cbFor(a));
   }
 
   function formatMoney(value: number): string {
@@ -283,7 +303,7 @@ export function PortfolioTable() {
                 columnKey="asset"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"profit"|"weight")}
                 setDir={setSortDir}
               />
             </TableHead>
@@ -293,7 +313,7 @@ export function PortfolioTable() {
                 columnKey="coins"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"profit"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -304,40 +324,30 @@ export function PortfolioTable() {
                 columnKey="price"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"profit"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
             </TableHead>
             <TableHead className="text-right">
               <SortableHeader
-                label={`Market Value (${ccy})`}
-                columnKey="mv"
+                label="Profit"
+                columnKey="profit"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"profit"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
             </TableHead>
-            <TableHead className="text-right">
-              <SortableHeader
-                label={`Cost Basis (${ccy})`}
-                columnKey="cb"
-                activeKey={sortKey}
-                dir={sortDir}
-                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
-                setDir={setSortDir}
-                alignRight
-              />
-            </TableHead>
+            <TableHead className="text-right">Change (1d/30d/1y)</TableHead>
             <TableHead className="text-right">
               <SortableHeader
                 label="Weight"
                 columnKey="weight"
                 activeKey={sortKey}
                 dir={sortDir}
-                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"mv"|"cb"|"weight")}
+                setKey={(k) => setSortKey(k as "asset"|"coins"|"price"|"profit"|"weight")}
                 setDir={setSortDir}
                 alignRight
               />
@@ -368,9 +378,23 @@ export function PortfolioTable() {
                   <CoinsCell isEditing={isEditing} coins={a.coins} decimals={decimals} editCoins={editCoins} setEditCoins={setEditCoins} />
                 </TableCell>
                 <TableCell className="text-right">{formatPrice(priceFor(a))}</TableCell>
-                <TableCell className="text-right">{formatMoney(mvFor(a))}</TableCell>
                 <TableCell className="text-right">
-                  <CostBasisCell isEditing={isEditing} ccy={ccy} cbDisplay={-Math.abs(cbFor(a))} editCB={editCB} setEditCB={setEditCB} />
+                  <TooltipProvider disableHoverableContent>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={moneyClass(profitFor(a))}>{formatMoney(profitFor(a))}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                          <span className="text-zinc-500">Market Value</span><span className="tabular-nums text-right">{formatMoney(mvFor(a))}</span>
+                          <span className="text-zinc-500">Cost Basis</span><span className="tabular-nums text-right">{formatMoney(-Math.abs(cbFor(a)))}</span>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+                <TableCell className="text-right">
+                  <ChangeCell pcts={changes[a.symbol]?.pcts as any} />
                 </TableCell>
                 <TableCell className="text-right">
                   <WeightCell mv={mvFor(a) || 0} total={totalForCcy() || 0} />
@@ -420,7 +444,7 @@ export function PortfolioTable() {
               </TableCell>
               <TableCell className="text-right">{formatCoins(stables.reduce((s, a) => s + a.coins, 0), 2)}</TableCell>
               <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">{stables.reduce((s, a) => s + a.mv_usd, 0).toFixed(2)}</TableCell>
+              <TableCell className="text-right">-</TableCell>
               <TableCell className="text-right">-</TableCell>
             </TableRow>
           )}

@@ -82,14 +82,42 @@ This document captures the current design, decisions, and pointers for the Balan
 
 ### Conventions
 
-- Store prices from CG in USD and GBP. Derive BTC valuations via BTCUSD or direct vs_currency=btc.
+- Store prices from CG in USD only. Convert to GBP and BTC on-demand via `fx_rates`.
+- FX series stored:
+  - `GBP->USD` (derived via USDC where possible or direct FX if added later)
+  - `BTC->USD` (from BTCUSD price)
 - Average cost may be stored in GBP when provided; convert to the viewing currency for P+L.
 - Stablecoins set: {USDC, USDT, SUSDe} + GBP as cash. Grouped in UI and excluded from 30-cap.
+
+### Price Retention & Compaction Policy
+
+- Only a single value per asset per period is stored for USD prices.
+- Granularity targets per asset (USD):
+  - Hourly granularity for the most recent 24 hours.
+  - Daily granularity for the most recent 365 days.
+  - Monthly granularity forever (post 1 year).
+- Compaction job maintains these guarantees by:
+  - Keeping the last sample in each hour/day/month bucket.
+  - Deleting superseded samples and any non-USD `prices` rows.
+  - Maintaining `fx_rates` with similar granularity (hourly 24h, daily 1y, monthly forever) for GBPUSD and BTCUSD.
+
+### Backfill and Ongoing Updates
+
+- Backfill (Coingecko):
+  - Fetch USD `market_chart` for assets up to 365 days (CG range limit).
+  - Fetch USDC in GBP and USD to derive GBPUSD; store as `fx_rates`.
+  - Fetch BTCUSD and store as `fx_rates` (BTC->USD).
+  - Insert only USD `prices` rows; then compact.
+- Runner (hourly):
+  - Fetch markets (USD) for all portfolio assets.
+  - Fetch USDC in GBP and USD to derive GBPUSD.
+  - Record BTCUSD as `fx_rates`.
+  - Insert USD prices and applicable FX; then compact.
 
 ## Services and Jobs
 
 - Importer: parse token list, sanitize symbols and currency formats, map via cg-mapping.txt, upsert assets/positions.
-- Price job (hourly): fetch prices (USD/GBP; BTC if used), update prices and fx_rates.
+- Price job (hourly): fetch USD prices (single value per asset per hour), update `fx_rates` (GBPUSD, BTCUSD), then run compaction.
 - Rule engine:
   - Laddered 100% rule triggers with 1-day cool-off per asset after an action is taken.
   - Drift checks against targets with thresholds and min-trade enforcement.

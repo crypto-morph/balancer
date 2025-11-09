@@ -114,7 +114,7 @@ def test_upsert_assets_for_markets_existing(test_db, sample_assets):
 
 
 def test_store_prices_usd_gbp(test_db, sample_assets, monkeypatch):
-    """Test storing USD and GBP prices."""
+    """Test storing USD prices and FX derived from USDC."""
     rows_usd = [
         {"id": "bitcoin", "symbol": "btc", "current_price": 60000.0},
         {"id": "usd-coin", "symbol": "usdc", "current_price": 1.0},
@@ -143,8 +143,9 @@ def test_store_prices_usd_gbp(test_db, sample_assets, monkeypatch):
     
     assert usd_price is not None
     assert usd_price.price == 60000.0
-    assert gbp_price is not None
-    assert gbp_price.price == 48000.0
+    # GBP prices are no longer stored; conversion happens via FX on demand
+    gbp_price = test_db.query(Price).filter(Price.asset_id == btc.id, Price.ccy == "GBP").first()
+    assert gbp_price is None
     
     # Verify FX rate stored
     fx = test_db.query(FxRate).filter(FxRate.base_ccy == "GBP", FxRate.quote_ccy == "USD").first()
@@ -178,7 +179,7 @@ def test_store_prices_gbp_only(test_db, sample_assets, monkeypatch):
 
 
 def test_derive_and_store_btc_prices(test_db, sample_assets, monkeypatch):
-    """Test deriving and storing BTC prices."""
+    """Test deriving BTC/USD FX only (no BTC-priced rows stored)."""
     rows_usd = [
         {"id": "bitcoin", "symbol": "btc", "current_price": 60000.0},
         {"id": "ethereum", "symbol": "eth", "current_price": 3000.0},
@@ -194,13 +195,12 @@ def test_derive_and_store_btc_prices(test_db, sample_assets, monkeypatch):
     
     stored = derive_and_store_btc_prices(rows_usd, btc_usd)
     
-    assert stored > 0
+    assert stored == 0
     
-    # Verify BTC prices stored
+    # No BTC-priced rows should be stored
     eth = next(a for a in sample_assets if a.symbol == "ETH")
     btc_price = test_db.query(Price).filter(Price.asset_id == eth.id, Price.ccy == "BTC").first()
-    assert btc_price is not None
-    assert abs(btc_price.price - 0.05) < 0.001  # 3000 / 60000 = 0.05
+    assert btc_price is None
     
     # Verify BTC/USD FX stored
     fx = test_db.query(FxRate).filter(FxRate.base_ccy == "BTC", FxRate.quote_ccy == "USD").first()
@@ -234,5 +234,10 @@ def test_run_price_fetch(mock_read_mapping, mock_ids_from_positions, mock_fetch_
     prices = test_db.query(Price).filter(Price.asset_id == btc.id).all()
     assert len(prices) > 0
     
-    mock_fetch_markets.assert_called_once()
+    # Called twice: once for USD and once for GBP (USDC FX)
+    assert mock_fetch_markets.call_count == 2
+    calls = [args for args, _ in mock_fetch_markets.call_args_list]
+    # First call: USD, Second call: GBP (order may vary but both must exist)
+    vs_list = sorted([c[1] for c in calls])
+    assert vs_list == ["gbp", "usd"]
 

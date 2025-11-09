@@ -27,16 +27,19 @@ export async function GET() {
         asset_id: number
       }>
 
-      const qPriceLatest = db.prepare("SELECT price FROM prices WHERE asset_id = ? AND ccy = ? ORDER BY at DESC LIMIT 1")
+      const qPriceLatestUsd = db.prepare("SELECT price FROM prices WHERE asset_id = ? AND ccy = 'USD' ORDER BY at DESC LIMIT 1")
+      const qFxLatest = db.prepare("SELECT rate FROM fx_rates WHERE base_ccy = ? AND quote_ccy = 'USD' ORDER BY at DESC LIMIT 1")
 
       let total_mv_usd = 0
       let total_mv_gbp = 0
       let total_mv_btc = 0
 
       const assets = posRows.map((r) => {
-        const price_usd = ((qPriceLatest.get(r.asset_id, 'USD') as { price?: number } | undefined)?.price) ?? 0
-        const price_gbp = ((qPriceLatest.get(r.asset_id, 'GBP') as { price?: number } | undefined)?.price) ?? 0
-        const price_btc = ((qPriceLatest.get(r.asset_id, 'BTC') as { price?: number } | undefined)?.price) ?? 0
+        const price_usd = ((qPriceLatestUsd.get(r.asset_id) as { price?: number } | undefined)?.price) ?? 0
+        const gbp_usd = ((qFxLatest.get('GBP') as { rate?: number } | undefined)?.rate) ?? 0
+        const btc_usd = ((qFxLatest.get('BTC') as { rate?: number } | undefined)?.rate) ?? 0
+        const price_gbp = gbp_usd > 0 ? price_usd / gbp_usd : 0
+        const price_btc = btc_usd > 0 ? price_usd / btc_usd : 0
         const mv_usd = r.coins * price_usd
         const mv_gbp = r.coins * price_gbp
         const mv_btc = r.coins * price_btc
