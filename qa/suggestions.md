@@ -280,7 +280,7 @@ with SessionLocal() as db:
 
 **Locations**: `web/src/app/api/portfolio/route.ts`, `web/src/app/api/alerts/route.ts`
 
-**Concern**: 
+**Concern**:
 - Tight coupling to filesystem structure
 - No validation of file contents
 - Error handling returns 200 status even on errors
@@ -344,7 +344,7 @@ with SessionLocal() as db:
 
 **Issue**: Limited input validation on user-provided data.
 
-**Locations**: 
+**Locations**:
 - `importer.py`: File parsing has minimal validation
 - API routes: No input validation
 
@@ -459,6 +459,3 @@ The codebase demonstrates good architectural thinking with clear separation of c
 - **Code Quality**: Magic numbers, missing type hints, and code duplication reduce maintainability
 
 Addressing the high-priority items will significantly improve code quality, reliability, and maintainability.
-
-
-
