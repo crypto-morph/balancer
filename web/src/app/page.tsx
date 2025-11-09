@@ -5,6 +5,7 @@ import { PortfolioTable } from "@/components/portfolio-table";
 import { IndicatorsCard } from "@/components/indicators-card";
 import { SummaryCard } from "@/components/summary-card";
 import { PortfolioPie } from "@/components/portfolio-pie";
+import { HealthBadge } from "@/components/health-badge";
 
 export default function Home() {
   return (
@@ -12,7 +13,10 @@ export default function Home() {
       <main className="mx-auto max-w-7xl p-6 space-y-6">
         <header className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Balancer Dashboard</h1>
-          <div className="text-sm text-zinc-500">Prototype</div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-zinc-500">Prototype</div>
+            <HealthBadge />
+          </div>
         </header>
         <Separator />
 

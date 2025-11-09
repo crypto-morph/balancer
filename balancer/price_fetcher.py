@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple
-from datetime import datetime
+from datetime import datetime, UTC
 from .config import CG_MAPPING_FILE
 from .db import SessionLocal
 from .models import Asset, Price, FxRate, Position
@@ -85,7 +85,7 @@ def store_prices(rows_usd: List[dict], rows_gbp: List[dict]) -> Tuple[float, int
     with SessionLocal() as db:
         # ensure assets exist and get ids mapping
         m = upsert_assets_for_markets(list(by_id_usd.values()) or list(by_id_gbp.values()))
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         usdc_usd = 0.0
         usdc_gbp = 0.0
 
@@ -141,7 +141,7 @@ def derive_and_store_btc_prices(rows_usd: List[dict], btc_usd: float) -> int:
     if not btc_usd:
         return 0
     with SessionLocal() as db:
-        db.add(FxRate(base_ccy="BTC", quote_ccy="USD", rate=btc_usd, at=datetime.utcnow()))
+        db.add(FxRate(base_ccy="BTC", quote_ccy="USD", rate=btc_usd, at=datetime.now(UTC)))
         db.commit()
     return 0
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from .db import SessionLocal
 from .models import Indicator
 from .clients import CoingeckoClient, FredClient, FearGreedClient
@@ -43,5 +43,5 @@ def store_indicator(name: str, value: float) -> None:
     if not value and value != 0.0:
         return
     with SessionLocal() as db:
-        db.add(Indicator(name=name, value=float(value), at=datetime.utcnow()))
+        db.add(Indicator(name=name, value=float(value), at=datetime.now(UTC)))
         db.commit()

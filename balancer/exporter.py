@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, Any, List
 
 from .db import SessionLocal
@@ -44,7 +44,7 @@ def export_portfolio_json(portfolio_name: str = DEFAULT_PORTFOLIO_NAME) -> Path:
     with SessionLocal() as db:
         pf = db.query(Portfolio).filter_by(name=portfolio_name).first()
         if not pf:
-            out_path.write_text(json.dumps({"as_of": datetime.utcnow().isoformat() + "Z", "assets": []}, indent=2))
+            out_path.write_text(json.dumps({"as_of": datetime.now(UTC).isoformat() + "Z", "assets": []}, indent=2))
             return out_path
         positions = (
             db.query(Position)
@@ -59,7 +59,7 @@ def export_portfolio_json(portfolio_name: str = DEFAULT_PORTFOLIO_NAME) -> Path:
         gbp_usd = latest_fx(db, "GBP", "USD") or 0.0
         btc_usd = latest_fx(db, "BTC", "USD") or 0.0
         for pos in positions:
-            asset = db.query(Asset).get(pos.asset_id)
+            asset = db.get(Asset, pos.asset_id)
             mv_usd = position_market_value_usd(db, pos) or 0.0
             cb_usd = position_cost_basis_usd(db, pos) or 0.0
             price_usd = latest_price_usd(db, pos.asset_id) or 0.0
@@ -96,7 +96,7 @@ def export_portfolio_json(portfolio_name: str = DEFAULT_PORTFOLIO_NAME) -> Path:
                 }
             )
         payload: Dict[str, Any] = {
-            "as_of": datetime.utcnow().isoformat() + "Z",
+            "as_of": datetime.now(UTC).isoformat() + "Z",
             "portfolio": pf.name,
             "total_mv_usd": total_mv_usd,
             "total_mv_gbp": total_mv_gbp,

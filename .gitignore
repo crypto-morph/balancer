@@ -13,3 +13,6 @@ portfolio.json
 
 # Runtime PIDs and logs
 .pids/
+
+# Local exports
+portfolio.csv

@@ -1,12 +1,12 @@
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from .config import LOG_PATH
 
 
 def log_alert(kind: str, message: str, payload: dict | None = None, severity: str = "info") -> None:
     entry = {
-        "at": datetime.utcnow().isoformat() + "Z",
+        "at": datetime.now(UTC).isoformat() + "Z",
         "type": kind,
         "severity": severity,
         "message": message,

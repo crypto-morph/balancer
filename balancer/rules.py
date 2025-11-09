@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional, List, Dict
 
 from .config import (
@@ -95,7 +95,7 @@ def position_cost_basis_usd(db, pos: Position) -> Optional[float]:
 
 
 def last_alert_within(db, portfolio_id: int, asset_id: int, kind: str, within: timedelta) -> bool:
-    since = datetime.utcnow() - within
+    since = datetime.now(UTC) - within
     row = (
         db.query(Alert)
         .filter(
@@ -132,7 +132,7 @@ def evaluate_take_profit(db, portfolio_id: int, pos: Position) -> None:
                 continue
             # Recommend sell 33% of current remaining position
             qty = pos.coins * 0.33
-            asset = db.query(Asset).get(pos.asset_id)
+            asset = db.get(Asset, pos.asset_id)
             log_alert(
                 kind="take_profit",
                 message=f"{asset.symbol}: Value >= {m:.1f}x cost. Consider selling 33% (~{qty:.6f} units)",
@@ -189,7 +189,7 @@ def evaluate_drift(db, portfolio_id: int, positions: List[Position]) -> None:
             diff_value = target_value - mv_by_asset.get(pos.asset_id, 0.0)
             if abs(diff_value) >= min_trade:
                 side = "BUY" if diff_value > 0 else "SELL"
-                asset = db.query(Asset).get(pos.asset_id)
+                asset = db.get(Asset, pos.asset_id)
                 price_usd = latest_price(db, pos.asset_id, "USD") or 0.0
                 qty = abs(diff_value) / price_usd if price_usd else 0.0
                 log_alert(

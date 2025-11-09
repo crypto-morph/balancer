@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import path from 'path'
+import fs from 'fs/promises'
 import Database from 'better-sqlite3'
 
 function pctChange(latest: number, ref: number | null | undefined): number | null {
@@ -14,6 +15,18 @@ export async function GET(req: Request) {
     const ccy = (searchParams.get('ccy') || 'USD').toUpperCase()
     const projectRoot = path.resolve(process.cwd(), '..')
     const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+    const cacheDir = path.join(projectRoot, '.cache')
+    const cacheFile = path.join(cacheDir, `changes-${ccy}.json`)
+
+    // Attempt to serve from cache (10 minutes TTL)
+    try {
+      const stat = await fs.stat(cacheFile)
+      const ageMs = Date.now() - stat.mtimeMs
+      if (ageMs < 10 * 60 * 1000) {
+        const cached = JSON.parse(await fs.readFile(cacheFile, 'utf-8'))
+        return NextResponse.json(cached)
+      }
+    } catch {}
     const db = new Database(dbPath)
     try {
       // Collect latest price per asset for the requested currency
@@ -100,7 +113,12 @@ export async function GET(req: Request) {
         }
       }
 
-      return NextResponse.json({ ok: true, ccy, changes: result })
+      const payload = { ok: true, ccy, changes: result }
+      try {
+        await fs.mkdir(cacheDir, { recursive: true })
+        await fs.writeFile(cacheFile, JSON.stringify(payload), 'utf-8')
+      } catch {}
+      return NextResponse.json(payload)
     } finally {
       db.close()
     }

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from .db import engine
 
 
@@ -28,7 +28,7 @@ def _delete_not_in(conn, table: str, where: str, group_expr: str) -> None:
 def compact_prices(now: datetime | None = None) -> None:
     """Retain: hourly for 24h, daily for 365d, monthly for older."""
     _ensure_indexes()
-    now = now or datetime.utcnow()
+    now = now or datetime.now(UTC)
     with engine.begin() as conn:
         # Hourly window: last 24 hours
         since_24h = now - timedelta(hours=24)
@@ -50,7 +50,7 @@ def compact_prices(now: datetime | None = None) -> None:
 
 def compact_fx(now: datetime | None = None) -> None:
     _ensure_indexes()
-    now = now or datetime.utcnow()
+    now = now or datetime.now(UTC)
     with engine.begin() as conn:
         since_24h = now - timedelta(hours=24)
         since_1y = now - timedelta(days=365)

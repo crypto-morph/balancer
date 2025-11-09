@@ -100,6 +100,10 @@ npm run dev
   - `test unit` — run Python unit tests (pytest)
   - `test e2e` — run Playwright tests (starts dev server automatically)
   - `test all` — run unit, then E2E tests
+  - `logs fe|be|both [-f] [-n 200]` — tail runtime logs
+  - `compact` — run data compaction now
+  - `verify` — print data coverage (prices/FX) summary
+  - `repair [--carry-forward]` — repair gaps (backfill 365d) or fill missing buckets by carrying forward prior values
 
 - Examples:
 
@@ -125,6 +129,32 @@ python -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.
 # stop services
 ./balancerctl stop
 ```
+
+### Portfolio CSV Import / Export
+
+- Schema:
+  - Columns: `symbol, coins, avg_cost_ccy, avg_cost_per_unit`
+  - Example row: `BTC,0.1114,GBP,31161.97`
+- Export current portfolio:
+  - `./balancerctl export-csv portfolio.csv`
+- Import portfolio into a named portfolio (creates missing assets as needed):
+  - `./balancerctl import-csv portfolio.csv --portfolio Default`
+- Notes:
+  - `portfolio.csv` is gitignored by default.
+
+### Data Health & Repair
+
+- One-off commands:
+  - Show recent data coverage (hourly 24h, daily 1y):
+    - `./balancerctl verify`
+  - Compact prices and FX now (hourly last 24h, daily last 365d, monthly older):
+    - `./balancerctl compact`
+  - Repair gaps via backfill (up to 365 days), then compact:
+    - `./balancerctl repair`
+  - Repair by carrying forward prior values (fills missing hourly/daily buckets), then compact:
+    - `./balancerctl repair --carry-forward`
+  - Tail logs:
+    - `./balancerctl logs fe -f -n 200`
 
 - Implementation details:
   - Uses PID files in `.pids/` with logs: `.pids/frontend.log`, `.pids/backend.log`

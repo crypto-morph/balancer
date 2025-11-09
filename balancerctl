@@ -212,7 +212,21 @@ def main() -> int:
 
     sub.add_parser("compact", help="Run compaction (prices + fx) now")
     sub.add_parser("verify", help="Verify data coverage and print a JSON summary")
-    sub.add_parser("repair", help="Attempt to repair gaps by backfilling last 365 days, then compact")
+    rp = sub.add_parser("repair", help="Attempt to repair gaps by backfilling last 365 days, then compact")
+    rp.add_argument("--carry-forward", action="store_true", help="Fill missing buckets by carrying forward prior values before compaction")
+
+    exp = sub.add_parser("export-csv", help="Export current portfolio positions to CSV")
+    exp.add_argument("path", nargs="?", default="portfolio.csv", help="Output CSV path (default: portfolio.csv)")
+    exp.add_argument("--portfolio", dest="portfolio", default=None, help="Portfolio name (default: first)")
+
+    imp = sub.add_parser("import-csv", help="Import portfolio positions from CSV")
+    imp.add_argument("path", help="Input CSV path")
+    imp.add_argument("--portfolio", dest="portfolio", default="Default", help="Portfolio name (default: Default)")
+
+    lg = sub.add_parser("logs", help="Tail logs for frontend/backend")
+    lg.add_argument("which", choices=["fe", "be", "both"], help="Which logs to show")
+    lg.add_argument("-f", "--follow", action="store_true", help="Follow the log output")
+    lg.add_argument("-n", dest="lines", default="100", help="Number of lines to show (default 100)")
 
     args = p.parse_args()
 
@@ -284,11 +298,49 @@ def main() -> int:
         )
         return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
     if args.cmd == "repair":
+        if args.carry_forward:
+            code = (
+                "from balancer.repair import carry_forward_missing; from balancer.compaction import compact_all; "
+                "carry_forward_missing(); compact_all()"
+            )
+        else:
+            code = (
+                "from balancer.backfill import backfill_prices; from balancer.compaction import compact_all; "
+                "backfill_prices(days='365'); compact_all()"
+            )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+
+    if args.cmd == "export-csv":
         code = (
-            "from balancer.backfill import backfill_prices; from balancer.compaction import compact_all; "
-            "backfill_prices(days='365'); compact_all()"
+            "from balancer.csv_io import export_portfolio_csv; "
+            f"export_portfolio_csv(r'{args.path}', portfolio_name={repr(args.portfolio)})"
         )
         return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+    if args.cmd == "import-csv":
+        code = (
+            "from balancer.csv_io import import_portfolio_csv; "
+            f"import_portfolio_csv(r'{args.path}', portfolio_name={repr(args.portfolio)})"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+
+    if args.cmd == "logs":
+        which = args.which
+        flags = []
+        if args.follow:
+            flags.append("-f")
+        flags += ["-n", str(args.lines)]
+        cmds = []
+        if which in ("fe", "both"):
+            cmds.append(["sh", "-lc", f"tail {' '.join(flags)} {FRONTEND_LOG}"])
+        if which in ("be", "both"):
+            cmds.append(["sh", "-lc", f"tail {' '.join(flags)} {BACKEND_LOG}"])
+        # If both, run sequentially
+        ret = 0
+        for c in cmds:
+            r = subprocess.call(c, cwd=str(ROOT))
+            if r != 0:
+                ret = r
+        return ret
 
     p.error("Unknown command")
     return 2

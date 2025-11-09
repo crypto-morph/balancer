@@ -1,11 +1,11 @@
 from __future__ import annotations
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, Any
 from .db import SessionLocal
 
 
 def _now() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(UTC)
 
 
 def verify_health() -> Dict[str, Any]:

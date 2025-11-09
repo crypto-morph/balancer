@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, UniqueConstraint, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, UTC
 from .db import Base
 
 class Asset(Base):
@@ -29,7 +29,7 @@ class Position(Base):
     coins = Column(Float, default=0.0)
     avg_cost_ccy = Column(String, default="GBP")
     avg_cost_per_unit = Column(Float, default=0.0)
-    as_of = Column(DateTime, default=datetime.utcnow)
+    as_of = Column(DateTime, default=lambda: datetime.now(UTC))
     portfolio = relationship("Portfolio")
     asset = relationship("Asset")
     __table_args__ = (UniqueConstraint("portfolio_id", "asset_id", name="uq_position_portfolio_asset"),)
@@ -40,7 +40,7 @@ class Price(Base):
     asset_id = Column(Integer, ForeignKey("assets.id"), index=True, nullable=False)
     ccy = Column(String, index=True, nullable=False)
     price = Column(Float, nullable=False)
-    at = Column(DateTime, index=True, default=datetime.utcnow)
+    at = Column(DateTime, index=True, default=lambda: datetime.now(UTC))
 
 class FxRate(Base):
     __tablename__ = "fx_rates"
@@ -48,7 +48,7 @@ class FxRate(Base):
     base_ccy = Column(String, index=True, nullable=False)
     quote_ccy = Column(String, index=True, nullable=False)
     rate = Column(Float, nullable=False)
-    at = Column(DateTime, index=True, default=datetime.utcnow)
+    at = Column(DateTime, index=True, default=lambda: datetime.now(UTC))
     __table_args__ = (UniqueConstraint("base_ccy", "quote_ccy", "at", name="uq_fx_pair_time"),)
 
 class Target(Base):
@@ -81,7 +81,7 @@ class Alert(Base):
     message = Column(Text, nullable=False)
     payload_json = Column(Text)
     severity = Column(String, default="info")
-    at = Column(DateTime, index=True, default=datetime.utcnow)
+    at = Column(DateTime, index=True, default=lambda: datetime.now(UTC))
 
 class TradeManual(Base):
     __tablename__ = "trades_manual"
@@ -95,14 +95,14 @@ class TradeManual(Base):
     fee_ccy = Column(String)
     fee = Column(Float, default=0.0)
     note = Column(Text)
-    at = Column(DateTime, index=True, default=datetime.utcnow)
+    at = Column(DateTime, index=True, default=lambda: datetime.now(UTC))
 
 class Indicator(Base):
     __tablename__ = "indicators"
     id = Column(Integer, primary_key=True)
     name = Column(String, index=True, nullable=False)
     value = Column(Float, nullable=False)
-    at = Column(DateTime, index=True, default=datetime.utcnow)
+    at = Column(DateTime, index=True, default=lambda: datetime.now(UTC))
 
 class NewsItem(Base):
     __tablename__ = "news_items"
@@ -111,4 +111,4 @@ class NewsItem(Base):
     source = Column(String)
     title = Column(String)
     url = Column(String)
-    at = Column(DateTime, index=True, default=datetime.utcnow)
+    at = Column(DateTime, index=True, default=lambda: datetime.now(UTC))
