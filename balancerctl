@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+import argparse
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+WEB = ROOT / "web"
+PIDS_DIR = ROOT / ".pids"
+PIDS_DIR.mkdir(exist_ok=True)
+
+# Prefer project virtualenv Python if available
+VENVPY = ROOT / ".venv" / "bin" / "python"
+PYEXEC = str(VENVPY) if VENVPY.exists() else sys.executable
+
+FRONTEND_PID = PIDS_DIR / "frontend.pid"
+BACKEND_PID = PIDS_DIR / "backend.pid"
+FRONTEND_LOG = PIDS_DIR / "frontend.log"
+BACKEND_LOG = PIDS_DIR / "backend.log"
+
+
+def _is_running(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    else:
+        return True
+
+
+def _read_pid(pid_file: Path) -> int | None:
+    if not pid_file.exists():
+        return None
+    try:
+        pid = int(pid_file.read_text().strip())
+    except Exception:
+        return None
+    return pid if pid > 0 else None
+
+
+def _write_pid(pid_file: Path, pid: int) -> None:
+    pid_file.write_text(str(pid))
+
+
+def _terminate(pid: int, name: str, timeout: float = 10.0) -> bool:
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        print(f"[warn] No permission to signal {name} pid={pid}")
+        return False
+
+    start = time.time()
+    while time.time() - start < timeout:
+        if not _is_running(pid):
+            return True
+        time.sleep(0.2)
+    # Force kill
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        print(f"[warn] No permission to SIGKILL {name} pid={pid}")
+        return False
+    return True
+
+
+def start_frontend() -> None:
+    pid = _read_pid(FRONTEND_PID)
+    if pid and _is_running(pid):
+        print(f"[ok] Frontend already running (pid {pid})")
+        return
+    if not WEB.exists():
+        print("[err] web/ directory not found")
+        sys.exit(1)
+    log = open(FRONTEND_LOG, "a", buffering=1)
+    proc = subprocess.Popen(
+        ["npm", "run", "dev"],
+        cwd=str(WEB),
+        stdout=log,
+        stderr=log,
+        preexec_fn=os.setsid,
+    )
+    _write_pid(FRONTEND_PID, proc.pid)
+    print(f"[ok] Frontend started (pid {proc.pid})")
+
+
+def stop_frontend() -> None:
+    pid = _read_pid(FRONTEND_PID)
+    if not pid:
+        print("[ok] Frontend not running (no pid file)")
+        return
+    if _terminate(pid, "frontend"):
+        print(f"[ok] Frontend stopped (pid {pid})")
+        try:
+            FRONTEND_PID.unlink(missing_ok=True)
+        except Exception:
+            pass
+    else:
+        print(f"[err] Failed to stop frontend (pid {pid})")
+        sys.exit(1)
+
+
+def start_backend(interval_sec: int = 300) -> None:
+    pid = _read_pid(BACKEND_PID)
+    if pid and _is_running(pid):
+        print(f"[ok] Backend already running (pid {pid})")
+        return
+    log = open(BACKEND_LOG, "a", buffering=1)
+    # Run runner.run_once() in a loop with sleep using current Python interpreter
+    code = (
+        "import signal, sys, time\n"
+        "from balancer.runner import run_once\n"
+        "running = True\n"
+        "def handle(sig, frm):\n"
+        "    global running\n"
+        "    running = False\n"
+        "signal.signal(signal.SIGTERM, handle)\n"
+        "signal.signal(signal.SIGINT, handle)\n"
+        f"interval={interval_sec}\n"
+        "print('[backend] loop starting, interval', interval)\n"
+        "while running:\n"
+        "    try:\n"
+        "        run_once()\n"
+        "    except Exception as e:\n"
+        "        print('[backend] run_once error:', e, file=sys.stderr)\n"
+        "    for _ in range(interval*10):\n"
+        "        if not running: break\n"
+        "        time.sleep(0.1)\n"
+        "print('[backend] loop exiting')\n"
+    )
+    proc = subprocess.Popen(
+        [PYEXEC, "-c", code],
+        cwd=str(ROOT),
+        stdout=log,
+        stderr=log,
+        preexec_fn=os.setsid,
+    )
+    _write_pid(BACKEND_PID, proc.pid)
+    print(f"[ok] Backend started (pid {proc.pid})")
+
+
+def stop_backend() -> None:
+    pid = _read_pid(BACKEND_PID)
+    if not pid:
+        print("[ok] Backend not running (no pid file)")
+        return
+    if _terminate(pid, "backend"):
+        print(f"[ok] Backend stopped (pid {pid})")
+        try:
+            BACKEND_PID.unlink(missing_ok=True)
+        except Exception:
+            pass
+    else:
+        print(f"[err] Failed to stop backend (pid {pid})")
+        sys.exit(1)
+
+
+def status() -> None:
+    fpid = _read_pid(FRONTEND_PID)
+    bpid = _read_pid(BACKEND_PID)
+    print("Frontend:", (f"running (pid {fpid})" if fpid and _is_running(fpid) else "stopped"))
+    print("Backend:", (f"running (pid {bpid})" if bpid and _is_running(bpid) else "stopped"))
+
+
+def test_unit(py_args: list[str]) -> int:
+    cmd = [PYEXEC, "-m", "pytest", "-q"] + py_args
+    return subprocess.call(cmd, cwd=str(ROOT))
+
+
+def test_e2e(pw_args: list[str]) -> int:
+    # Playwright config starts the dev server automatically
+    env = os.environ.copy()
+    env.setdefault("NEXT_DISABLE_TURBOPACK", "1")
+    return subprocess.call(["npm", "run", "test:e2e", "-s"] + pw_args, cwd=str(WEB), env=env)
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(prog="balancerctl", description="Manage balancer services and tests")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("start", help="Start both frontend and backend")
+    sub.add_parser("stop", help="Stop both frontend and backend")
+    sub.add_parser("restart", help="Restart both frontend and backend")
+    sub.add_parser("status", help="Show status of frontend and backend")
+
+    sub.add_parser("start-fe", help="Start frontend only")
+    sub.add_parser("stop-fe", help="Stop frontend only")
+    sub.add_parser("start-be", help="Start backend only")
+    sub.add_parser("stop-be", help="Stop backend only")
+
+    t = sub.add_parser("test", help="Run tests")
+    t.add_argument("which", choices=["unit", "e2e", "all"], help="Which tests to run")
+    t.add_argument("--", dest="rest", nargs=argparse.REMAINDER, help="Args to pass through")
+
+    be = sub.add_parser("start-be-loop", help="Start backend with custom interval")
+    be.add_argument("interval", type=int, nargs="?", default=300, help="Interval seconds between run_once calls (default 300)")
+
+    args = p.parse_args()
+
+    if args.cmd == "start":
+        start_frontend()
+        start_backend()
+        return 0
+    if args.cmd == "stop":
+        stop_backend()
+        stop_frontend()
+        return 0
+    if args.cmd == "restart":
+        stop_backend()
+        stop_frontend()
+        start_frontend()
+        start_backend()
+        return 0
+    if args.cmd == "status":
+        status()
+        return 0
+    if args.cmd == "start-fe":
+        start_frontend()
+        return 0
+    if args.cmd == "stop-fe":
+        stop_frontend()
+        return 0
+    if args.cmd == "start-be":
+        start_backend()
+        return 0
+    if args.cmd == "stop-be":
+        stop_backend()
+        return 0
+    if args.cmd == "start-be-loop":
+        start_backend(interval_sec=args.interval)
+        return 0
+    if args.cmd == "test":
+        passthrough = args.rest or []
+        if args.which == "unit":
+            return test_unit(passthrough)
+        if args.which == "e2e":
+            return test_e2e(passthrough)
+        # all
+        code1 = test_unit([])
+        if code1 != 0:
+            return code1
+        return test_e2e([])
+
+    p.error("Unknown command")
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

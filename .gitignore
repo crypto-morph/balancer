@@ -10,3 +10,6 @@ balancer.db
 alerts.jsonl
 portfolio.json
 .cache/
+
+# Runtime PIDs and logs
+.pids/
