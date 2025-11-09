@@ -24,6 +24,12 @@ jobs:
           . .venv/bin/activate
           pip install -r requirements-dev.txt
       
+      - name: Initialize test database schema
+        run: |
+          . .venv/bin/activate
+          export PYTHONPATH=$PWD
+          python -c "from balancer.db import Base, engine; from balancer import models; Base.metadata.create_all(engine)"
+      
       - name: Run tests with coverage
         run: |
           . .venv/bin/activate

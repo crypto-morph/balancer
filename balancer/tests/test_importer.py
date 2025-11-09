@@ -72,7 +72,7 @@ def test_import_tokenlist(tmp_path, test_db, monkeypatch):
     
     monkeypatch.setattr("balancer.importer.SessionLocal", mock_session_local)
     # Also need to patch engine to use test_db's bind
-    from balancer.importer import engine as importer_engine
+    # This ensures Base.metadata.create_all() uses the test engine
     monkeypatch.setattr("balancer.importer.engine", test_db.bind)
     
     import_tokenlist(str(tokenlist), "TestPortfolio")

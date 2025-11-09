@@ -4,19 +4,42 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, UTC
 from balancer.db import Base
-from balancer.models import Asset, Portfolio, Position, Price, FxRate, Target, Alert, Indicator
+from balancer.models import Asset, Portfolio, Position, Price, FxRate, Target, Alert, Indicator, Narrative, AssetNarrative, TradeManual, NewsItem
 
 
-@pytest.fixture
+# Ensure all models are imported so Base.metadata includes them
+# This is important for schema creation
+_ = [Asset, Portfolio, Position, Price, FxRate, Target, Alert, Indicator, Narrative, AssetNarrative, TradeManual, NewsItem]
+
+
+@pytest.fixture(scope="function")
 def test_db():
     """In-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:", echo=False)
+    # Create all tables - ensure all models are registered
+    # This must happen before creating the session
     Base.metadata.create_all(engine)
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
     yield session
     session.close()
     Base.metadata.drop_all(engine)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_real_db_schema():
+    """Ensure the real database schema exists before any tests run.
+    This is a safety net in case any code path uses the real database."""
+    from balancer.db import Base, engine
+    # Import all models to register them with Base
+    from balancer import models
+    # Create schema in the real database (if it doesn't exist)
+    # This won't hurt if tables already exist
+    try:
+        Base.metadata.create_all(engine)
+    except Exception:
+        # If this fails, tests using mocked databases should still work
+        pass
 
 
 @pytest.fixture
