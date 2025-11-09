@@ -170,7 +170,7 @@ The following sections in `docs/spec.md` should be systematically converted to t
 
 **Structure**: Mirror the module structure (e.g., `test_price_fetcher.py`, `test_rules.py`, `test_importer.py`)
 
-**Tools**: 
+**Tools**:
 - `pytest` (already in `requirements-dev.txt`)
 - `coverage` for coverage reports
 - `ruff` for linting
@@ -632,4 +632,3 @@ jobs:
 - README: `README.md`
 - Backend Test Examples: `balancer/tests/`
 - Engineering Principles: `docs/spec.md#engineering-principles`
-

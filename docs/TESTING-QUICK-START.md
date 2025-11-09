@@ -104,4 +104,3 @@ Tests run automatically on push/PR via GitHub Actions (`.github/workflows/test.y
 - **Import errors**: Check that paths match your project structure
 - **Mock failures**: Verify mocks are set up correctly in `setup.ts`
 - **Database errors**: Tests use in-memory SQLite, should not require real DB
-
