@@ -1,5 +1,8 @@
 """Shared test fixtures for backend tests."""
 import pytest
+import os
+import tempfile
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, UTC
@@ -12,9 +15,47 @@ from balancer.models import Asset, Portfolio, Position, Price, FxRate, Target, A
 _ = [Asset, Portfolio, Position, Price, FxRate, Target, Alert, Indicator, Narrative, AssetNarrative, TradeManual, NewsItem]
 
 
+# Create test database file at module level (before any tests run)
+_test_db_file = None
+
+def _get_test_db_path():
+    """Get or create test database file path."""
+    global _test_db_file
+    if _test_db_file is None:
+        fd, path = tempfile.mkstemp(suffix='.db', prefix='test_balancer_')
+        os.close(fd)
+        _test_db_file = Path(path)
+        # Set environment variable so config picks it up
+        os.environ["DB_PATH"] = str(_test_db_file)
+        # Patch balancer.config.DB_PATH
+        import balancer.config
+        balancer.config.DB_PATH = str(_test_db_file)
+        # Patch balancer.db.engine to use test database
+        import balancer.db
+        test_engine = create_engine(f"sqlite:///{_test_db_file}", echo=False)
+        # Import all models to register them
+        from balancer import models  # noqa: F401
+        # Create schema
+        Base.metadata.create_all(test_engine)
+        balancer.db.engine = test_engine
+    return _test_db_file
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Set up test database for all tests.
+    This ensures tests never touch the real database."""
+    test_db_path = _get_test_db_path()
+    yield
+    # Cleanup: remove test database file after all tests
+    if test_db_path.exists():
+        test_db_path.unlink()
+
+
 @pytest.fixture(scope="function")
 def test_db():
-    """In-memory SQLite database for testing."""
+    """In-memory SQLite database for testing.
+    Individual tests use this isolated in-memory database."""
     engine = create_engine("sqlite:///:memory:", echo=False)
     # Create all tables - ensure all models are registered
     # This must happen before creating the session
@@ -24,22 +65,6 @@ def test_db():
     yield session
     session.close()
     Base.metadata.drop_all(engine)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def ensure_real_db_schema():
-    """Ensure the real database schema exists before any tests run.
-    This is a safety net in case any code path uses the real database."""
-    from balancer.db import Base, engine
-    # Import all models to register them with Base
-    from balancer import models  # noqa: F401
-    # Create schema in the real database (if it doesn't exist)
-    # This won't hurt if tables already exist
-    try:
-        Base.metadata.create_all(engine)
-    except Exception:
-        # If this fails, tests using mocked databases should still work
-        pass
 
 
 @pytest.fixture
