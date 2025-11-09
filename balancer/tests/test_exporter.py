@@ -36,6 +36,17 @@ def test_export_portfolio_json(tmp_path, test_db, sample_portfolio, sample_asset
     output_file = tmp_path / "portfolio.json"
     import balancer.config
     monkeypatch.setattr(balancer.config, "BASE_DIR", tmp_path)
+    
+    # Mock SessionLocal to use test_db - must patch before importing
+    from contextlib import contextmanager
+    @contextmanager
+    def mock_session_local():
+        yield test_db
+    
+    # Patch both the db module and exporter module
+    monkeypatch.setattr("balancer.db.SessionLocal", mock_session_local)
+    monkeypatch.setattr("balancer.exporter.SessionLocal", mock_session_local)
+    
     # Re-import exporter to pick up new BASE_DIR
     import importlib
     import balancer.exporter
@@ -92,6 +103,17 @@ def test_export_portfolio_json_totals(tmp_path, test_db, sample_portfolio, sampl
     output_file = tmp_path / "portfolio.json"
     import balancer.config
     monkeypatch.setattr(balancer.config, "BASE_DIR", tmp_path)
+    
+    # Mock SessionLocal to use test_db - must patch before importing
+    from contextlib import contextmanager
+    @contextmanager
+    def mock_session_local():
+        yield test_db
+    
+    # Patch both the db module and exporter module
+    monkeypatch.setattr("balancer.db.SessionLocal", mock_session_local)
+    monkeypatch.setattr("balancer.exporter.SessionLocal", mock_session_local)
+    
     import importlib
     import balancer.exporter
     importlib.reload(balancer.exporter)

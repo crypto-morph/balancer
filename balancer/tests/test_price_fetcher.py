@@ -44,8 +44,15 @@ def test_read_mapping_ids_missing_file(monkeypatch):
     assert ids == []
 
 
-def test_ids_from_positions(test_db, sample_portfolio, sample_assets, sample_positions):
+def test_ids_from_positions(test_db, sample_portfolio, sample_assets, sample_positions, monkeypatch):
     """Test collecting Coingecko IDs from active positions."""
+    from contextlib import contextmanager
+    @contextmanager
+    def mock_session_local():
+        yield test_db
+    
+    monkeypatch.setattr("balancer.price_fetcher.SessionLocal", mock_session_local)
+    
     ids = ids_from_positions()
     # Should return bitcoin, ethereum, usd-coin (from sample_assets)
     assert "bitcoin" in ids
