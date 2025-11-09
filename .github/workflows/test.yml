@@ -77,12 +77,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
+      
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements-dev.txt
+      
+      - name: Initialize database schema
+        run: |
+          . .venv/bin/activate
+          export PYTHONPATH=$PWD
+          python -c "from balancer.db import Base, engine; from balancer import models; Base.metadata.create_all(engine)"
       
       - name: Install dependencies
         working-directory: web
