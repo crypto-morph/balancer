@@ -32,15 +32,15 @@ pytest balancer/tests/test_rules.py::test_evaluate_take_profit_2x
 ```
 
 ### Test Files
-- `balancer/tests/conftest.py` - Shared fixtures
+- `balancer/tests/conftest.py` - Shared fixtures (test database setup, sample data)
 - `balancer/tests/test_price_fetcher.py` - Price fetching tests
 - `balancer/tests/test_rules.py` - Business rules tests
 - `balancer/tests/test_importer.py` - Import functionality tests
 - `balancer/tests/test_exporter.py` - Export functionality tests
 - `balancer/tests/test_alerts.py` - Alert logging tests
 - `balancer/tests/test_utils.py` - Utility function tests
-- `balancer/tests/test_indicators.py` - Indicator fetching tests (existing)
-- `balancer/tests/test_clients_coingecko.py` - Coingecko client tests (existing)
+- `balancer/tests/test_indicators.py` - Indicator fetching tests
+- `balancer/tests/test_clients_coingecko.py` - Coingecko client tests
 
 ## Frontend Tests
 

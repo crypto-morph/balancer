@@ -206,6 +206,7 @@ The following sections in `docs/spec.md` should be systematically converted to t
    - Test minimum trade size enforcement
    - Test target weight tier enforcement
    - Test narrative guardrails
+   - ✅ Existing: `test_rules.py`
 
 5. **Importer** (`balancer/importer.py`)
    - Test token list parsing
@@ -213,15 +214,18 @@ The following sections in `docs/spec.md` should be systematically converted to t
    - Test Coingecko ID mapping
    - Test asset/position upserts
    - Test stablecoin detection
+   - ✅ Existing: `test_importer.py`
 
 6. **Exporter** (`balancer/exporter.py`)
    - Test JSON structure matches API expectations
    - Test multi-currency price inclusion
    - Test cost basis calculations
+   - ✅ Existing: `test_exporter.py`
 
 7. **Alerts** (`balancer/alerts.py`)
    - Test JSONL log writing
    - Test alert structure and severity levels
+   - ✅ Existing: `test_alerts.py`
 
 8. **Database Models** (`balancer/models.py`)
    - Test model relationships
@@ -232,6 +236,7 @@ The following sections in `docs/spec.md` should be systematically converted to t
    - Test currency conversion functions
    - Test formatting utilities
    - Test numeric normalization
+   - ✅ Existing: `test_utils.py`
 
 ### Integration Tests
 
@@ -259,35 +264,27 @@ The following sections in `docs/spec.md` should be systematically converted to t
 
 ### Test Fixtures and Utilities
 
-**Create** `balancer/tests/conftest.py`:
+**Existing** `balancer/tests/conftest.py`:
 
+The test suite uses a **file-based SQLite database** (temporary file) rather than in-memory to ensure tests never touch the real database. The setup includes:
+
+- **`test_db` fixture**: Function-scoped database session using a temporary SQLite file
+- **`setup_test_database` fixture**: Session-scoped fixture that creates the test database schema before all tests and cleans up after
+- **Sample data fixtures**: `sample_portfolio`, `sample_assets`, `sample_positions`, `sample_prices`, `sample_fx_rates`, `sample_targets` for consistent test data
+
+**Key Features**:
+- Tests use a dedicated temporary database file (never the real `balancer.db`)
+- All models are imported to ensure schema is complete
+- Database path is patched in both environment variables and `balancer.config`
+- Automatic cleanup after test session completes
+
+**Usage in Tests**:
 ```python
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from balancer.db import Base
-from balancer.models import *
-
-@pytest.fixture
-def test_db():
-    """In-memory SQLite database for testing"""
-    engine = create_engine("sqlite:///:memory:", echo=False)
-    Base.metadata.create_all(engine)
-    SessionLocal = sessionmaker(bind=engine)
-    yield SessionLocal()
-    Base.metadata.drop_all(engine)
-
-@pytest.fixture
-def sample_assets(test_db):
-    """Create sample assets for testing"""
-    # Implementation
-    pass
-
-@pytest.fixture
-def sample_positions(test_db, sample_assets):
-    """Create sample positions for testing"""
-    # Implementation
-    pass
+def test_something(test_db, sample_assets, sample_positions):
+    # test_db is a SQLAlchemy session
+    # sample_assets and sample_positions are already in the database
+    asset = test_db.get(Asset, 1)
+    assert asset.symbol == "BTC"
 ```
 
 ## Frontend Testing Strategy

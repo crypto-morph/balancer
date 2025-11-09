@@ -158,6 +158,43 @@ This document captures the current design, decisions, and pointers for the Balan
 - Observability
   - JSONL alerts and structured logs for key events.
 
+### Coding Standards
+
+**Python Deprecation Warnings**
+
+To avoid deprecation warnings and ensure compatibility with Python 3.12+ and SQLAlchemy 2.0+:
+
+1. **Datetime Usage**
+   - ❌ **Don't use**: `datetime.utcnow()` (deprecated in Python 3.12)
+   - ✅ **Use instead**: `datetime.now(UTC)` (timezone-aware)
+   - **Example**:
+     ```python
+     from datetime import datetime, UTC
+     
+     # For current UTC time
+     now = datetime.now(UTC)
+     
+     # For SQLAlchemy column defaults
+     at = Column(DateTime, default=lambda: datetime.now(UTC))
+     ```
+
+2. **SQLAlchemy Query Methods**
+   - ❌ **Don't use**: `db.query(Model).get(id)` (deprecated in SQLAlchemy 2.0)
+   - ✅ **Use instead**: `db.get(Model, id)` (Session.get)
+   - **Example**:
+     ```python
+     # Old way (deprecated)
+     asset = db.query(Asset).get(asset_id)
+     
+     # New way (SQLAlchemy 2.0+)
+     asset = db.get(Asset, asset_id)
+     ```
+
+3. **Running Tests**
+   - Always run `./balancerctl test all` before committing to catch deprecation warnings
+   - Fix warnings immediately to maintain code quality
+   - Tests should pass with zero deprecation warnings (except harmless pytest/argparse warnings)
+
 ## Recent Design Decisions (Nov 2025)
 
 - **Pricing fetch (Coingecko)**
