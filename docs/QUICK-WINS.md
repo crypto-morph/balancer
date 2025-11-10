@@ -4,7 +4,7 @@ This document identifies the easiest, highest-impact fixes from the duplicate lo
 
 ## 🚀 Immediate Quick Wins (5-15 minutes each)
 
-### 1. **Money Formatting Function** ⚡ EASIEST
+### 1. **Money Formatting Function** ⚡ EASIEST ✅ COMPLETE
 **Effort:** 2 minutes  
 **Impact:** Removes duplicate code, ensures consistency
 
@@ -20,9 +20,11 @@ import { formatMoney } from "@/components/portfolio/format"
 **Files to change:** 1 file  
 **Risk:** Very low - just replacing identical function with import
 
+**Status:** ✅ Completed in commit `3745efc`
+
 ---
 
-### 2. **Time Calculation Constants** ⚡ VERY EASY
+### 2. **Time Calculation Constants** ⚡ VERY EASY ✅ COMPLETE
 **Effort:** 5 minutes  
 **Impact:** Standardises time calculations across routes
 
@@ -50,9 +52,11 @@ import { ONE_HOUR_MS, ONE_DAY_MS, days } from "@/lib/time-utils"
 **Files to change:** 3 files (1 new, 2 updates)  
 **Risk:** Very low - simple constant extraction
 
+**Status:** ✅ Completed in commit `5006e1f`
+
 ---
 
-### 3. **Percentage Change Function** ⚡ VERY EASY
+### 3. **Percentage Change Function** ⚡ VERY EASY ✅ COMPLETE
 **Effort:** 5 minutes  
 **Impact:** Reusable utility for future use
 
@@ -76,11 +80,13 @@ import { pctChange } from "@/lib/math-utils"
 **Files to change:** 2 files (1 new, 1 update)  
 **Risk:** Very low - simple function extraction
 
+**Status:** ✅ Completed in commit `30be437`
+
 ---
 
 ## 🎯 High-Impact Quick Wins (15-30 minutes each)
 
-### 4. **Project Root & Database Path** ⚡ HIGH IMPACT
+### 4. **Project Root & Database Path** ⚡ HIGH IMPACT ✅ COMPLETE
 **Effort:** 20-30 minutes  
 **Impact:** Affects 12 API routes, single point of truth for path resolution
 
@@ -119,6 +125,9 @@ const dbPath = getDbPath()
 
 **Files to change:** 13 files (1 new, 12 updates)  
 **Risk:** Low - straightforward refactoring, easy to test  
+
+**Status:** ✅ Completed in commit `2acc9d4` (12 routes updated)
+
 **Routes affected:**
 - `portfolio/route.ts`
 - `icons/route.ts`
@@ -135,7 +144,7 @@ const dbPath = getDbPath()
 
 ---
 
-### 5. **Cache Directory Path** ⚡ EASY (depends on #4)
+### 5. **Cache Directory Path** ⚡ EASY ✅ COMPLETE (completed as part of #4)
 **Effort:** 5 minutes (after #4 is done)  
 **Impact:** Uses the new `getCacheDir()` function
 
@@ -152,21 +161,24 @@ const cachePath = path.join(cacheDir, 'icons.json') // or 'changes.json'
 **Files to change:** 2 files  
 **Risk:** Very low - depends on #4
 
+**Status:** ✅ Completed as part of #4 in commit `2acc9d4` (both routes updated)
+
 ---
 
 ## 📊 Quick Wins Summary
 
-| # | Task | Effort | Impact | Risk | Priority |
-|---|------|--------|--------|------|----------|
-| 1 | Money Formatting | 2 min | Low | Very Low | ⚡ Do First |
-| 2 | Time Constants | 5 min | Medium | Very Low | ⚡ Do First |
-| 3 | Percentage Change | 5 min | Low | Very Low | ⚡ Do First |
-| 4 | Project Root/DB Path | 20-30 min | **Very High** | Low | 🎯 High Priority |
-| 5 | Cache Directory | 5 min | Medium | Very Low | 🎯 After #4 |
+| # | Task | Effort | Impact | Risk | Priority | Status |
+|---|------|--------|--------|------|----------|--------|
+| 1 | Money Formatting | 2 min | Low | Very Low | ⚡ Do First | ✅ Complete |
+| 2 | Time Constants | 5 min | Medium | Very Low | ⚡ Do First | ✅ Complete |
+| 3 | Percentage Change | 5 min | Low | Very Low | ⚡ Do First | ✅ Complete |
+| 4 | Project Root/DB Path | 20-30 min | **Very High** | Low | 🎯 High Priority | ✅ Complete |
+| 5 | Cache Directory | 5 min | Medium | Very Low | 🎯 After #4 | ✅ Complete |
 
-**Total Quick Wins Time:** ~40-50 minutes  
+**Total Quick Wins Time:** ~40-50 minutes ✅ **ALL COMPLETE**  
 **Total Files Changed:** ~18 files  
-**Impact:** Removes duplication from 12+ API routes
+**Impact:** Removes duplication from 12+ API routes  
+**Completion Date:** December 2024
 
 ---
 
