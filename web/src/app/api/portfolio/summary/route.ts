@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import path from 'path'
 import Database from 'better-sqlite3'
 import { ONE_DAY_MS } from '@/lib/time-utils'
+import { getProjectRoot, getDbPath } from '@/lib/db-config'
 
 export async function GET() {
   try {
-    const projectRoot = path.resolve(process.cwd(), '..')
-    const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+    const projectRoot = getProjectRoot()
+    const dbPath = getDbPath()
     const db = new Database(dbPath)
     try {
       const now = new Date()

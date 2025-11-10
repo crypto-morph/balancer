@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import path from 'path'
 import Database from 'better-sqlite3'
+import { getProjectRoot, getDbPath } from '@/lib/db-config'
 
 export async function POST(req: Request) {
   const payload = await req.json().catch(() => null) as any
   if (!payload || !Array.isArray(payload.assets)) {
     return NextResponse.json({ ok: false, error: 'Invalid payload: expected { assets: [] }' }, { status: 400 })
   }
-  const projectRoot = path.resolve(process.cwd(), '..')
-  const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+  const projectRoot = getProjectRoot()
+  const dbPath = getDbPath()
   const db = new Database(dbPath)
   try {
     const portfolioName = (payload.portfolio as string) || process.env.PORTFOLIO_NAME || 'Default'

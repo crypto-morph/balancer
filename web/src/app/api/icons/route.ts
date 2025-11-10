@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server'
 import path from 'path'
 import fs from 'fs/promises'
 import Database from 'better-sqlite3'
+import { getProjectRoot, getDbPath, getCacheDir } from '@/lib/db-config'
 
 type CacheFile = { updatedAt: number, images: Record<string, string>, caps: Record<string, number> }
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 export async function GET() {
   try {
-    const projectRoot = path.resolve(process.cwd(), '..')
-    const cacheDir = path.join(projectRoot, '.cache')
+    const projectRoot = getProjectRoot()
+    const cacheDir = getCacheDir()
     const cachePath = path.join(cacheDir, 'icons.json')
 
     // ensure cache dir exists
@@ -28,7 +29,7 @@ export async function GET() {
     } catch {}
 
     // compute ids from DB active positions
-    const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+    const dbPath = getDbPath()
     const db = new Database(dbPath)
     let ids: string[] = []
     try {

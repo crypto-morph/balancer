@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import path from 'path'
 import Database from 'better-sqlite3'
 import fs from 'fs'
+import { getProjectRoot, getDbPath } from '@/lib/db-config'
 
 // Only allow in development
 export async function GET(request: Request) {
@@ -16,8 +17,8 @@ export async function GET(request: Request) {
   const offset = parseInt(searchParams.get('offset') || '0')
 
   try {
-    const projectRoot = path.resolve(process.cwd(), '..')
-    const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+    const projectRoot = getProjectRoot()
+    const dbPath = getDbPath()
     
     if (!fs.existsSync(dbPath)) {
       return NextResponse.json({ error: 'Database file not found' }, { status: 404 })

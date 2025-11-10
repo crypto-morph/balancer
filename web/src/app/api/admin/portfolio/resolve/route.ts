@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { spawnSync } from 'node:child_process'
 import path from 'path'
+import { getProjectRoot } from '@/lib/db-config'
 
 export async function GET() {
-  const projectRoot = path.resolve(process.cwd(), '..')
+  const projectRoot = getProjectRoot()
   // Delegate to balancerctl resolve-cg for consistency and reuse
   const bin = path.join(projectRoot, 'balancerctl')
   const proc = spawnSync(bin, ['resolve-cg'], { cwd: projectRoot })

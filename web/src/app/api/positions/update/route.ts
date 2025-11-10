@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 import Database from 'better-sqlite3'
+import { getProjectRoot, getDbPath } from '@/lib/db-config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +21,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'invalid_payload' }, { status: 400 })
     }
 
-    const projectRoot = path.resolve(process.cwd(), '..')
-    const dbPath = body.db_path || process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+    const projectRoot = getProjectRoot()
+    const dbPath = body.db_path || getDbPath()
     const portfolioName = body.portfolio_name || process.env.PORTFOLIO_NAME || 'Default'
 
     const db = new Database(dbPath)

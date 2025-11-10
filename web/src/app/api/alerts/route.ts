@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { getProjectRoot } from '@/lib/db-config'
 
 export async function GET() {
   try {
-    const projectRoot = path.resolve(process.cwd(), '..')
+    const projectRoot = getProjectRoot()
     const filePath = path.join(projectRoot, 'alerts.jsonl')
     const data = await fs.readFile(filePath, 'utf8').catch(() => '')
     if (!data) {

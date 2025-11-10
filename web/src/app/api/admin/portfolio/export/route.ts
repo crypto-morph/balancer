@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import path from 'path'
 import Database from 'better-sqlite3'
+import { getProjectRoot, getDbPath } from '@/lib/db-config'
 
 export async function GET() {
-  const projectRoot = path.resolve(process.cwd(), '..')
-  const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
+  const projectRoot = getProjectRoot()
+  const dbPath = getDbPath()
   const db = new Database(dbPath)
   try {
     const asOfRow = db.prepare("SELECT at AS as_of FROM prices ORDER BY at DESC LIMIT 1").get() as { as_of?: string } | undefined

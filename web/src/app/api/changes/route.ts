@@ -4,14 +4,15 @@ import fs from 'fs/promises'
 import Database from 'better-sqlite3'
 import { ONE_HOUR_MS, ONE_DAY_MS, days } from '@/lib/time-utils'
 import { pctChange } from '@/lib/math-utils'
+import { getProjectRoot, getDbPath, getCacheDir } from '@/lib/db-config'
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const ccy = (searchParams.get('ccy') || 'USD').toUpperCase()
-    const projectRoot = path.resolve(process.cwd(), '..')
-    const dbPath = process.env.DB_PATH || path.join(projectRoot, 'balancer.db')
-    const cacheDir = path.join(projectRoot, '.cache')
+    const projectRoot = getProjectRoot()
+    const dbPath = getDbPath()
+    const cacheDir = getCacheDir()
     const cacheFile = path.join(cacheDir, `changes-${ccy}.json`)
 
     // Attempt to serve from cache (10 minutes TTL)
