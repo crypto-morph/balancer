@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple
-from datetime import datetime, UTC
+from datetime import datetime
 from .config import CG_MAPPING_FILE
 from .db import SessionLocal
 from .models import Asset, Price, FxRate, Position
@@ -8,8 +8,21 @@ from .compaction import compact_all
 
 
 def read_mapping_ids() -> List[str]:
+    """Read Coingecko IDs from mapping file.
+    - If file ends with .json, expect a JSON array of IDs.
+    - Else, fall back to first-line, comma-separated list.
+    """
     try:
-        with open(CG_MAPPING_FILE, "r", encoding="utf-8") as f:
+        path = CG_MAPPING_FILE
+        if path.lower().endswith(".json"):
+            import json
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                return [str(x).strip() for x in data if str(x).strip()]
+            return []
+        # legacy txt: first line CSV
+        with open(path, "r", encoding="utf-8") as f:
             first = f.readline().strip()
             ids = [x.strip() for x in first.split(",") if x.strip()]
             return ids
@@ -85,7 +98,8 @@ def store_prices(rows_usd: List[dict], rows_gbp: List[dict]) -> Tuple[float, int
     with SessionLocal() as db:
         # ensure assets exist and get ids mapping
         m = upsert_assets_for_markets(list(by_id_usd.values()) or list(by_id_gbp.values()))
-        now = datetime.now(UTC)
+        # Use naive UTC for SQLite compatibility
+        now = datetime.utcnow()
         usdc_usd = 0.0
         usdc_gbp = 0.0
 

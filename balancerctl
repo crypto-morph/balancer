@@ -212,8 +212,9 @@ def main() -> int:
 
     sub.add_parser("compact", help="Run compaction (prices + fx) now")
     sub.add_parser("verify", help="Verify data coverage and print a JSON summary")
-    rp = sub.add_parser("repair", help="Attempt to repair gaps by backfilling last 365 days, then compact")
+    rp = sub.add_parser("repair", help="Attempt to repair gaps (backfill/carry-forward/hourly 24h), then compact")
     rp.add_argument("--carry-forward", action="store_true", help="Fill missing buckets by carrying forward prior values before compaction")
+    rp.add_argument("--hourly-24h", action="store_true", help="Fetch 24h hourly series from Coingecko for assets and FX, then compact")
 
     exp = sub.add_parser("export-csv", help="Export current portfolio positions to CSV")
     exp.add_argument("path", nargs="?", default="portfolio.csv", help="Output CSV path (default: portfolio.csv)")
@@ -222,6 +223,13 @@ def main() -> int:
     imp = sub.add_parser("import-csv", help="Import portfolio positions from CSV")
     imp.add_argument("path", help="Input CSV path")
     imp.add_argument("--portfolio", dest="portfolio", default="Default", help="Portfolio name (default: Default)")
+
+    sub.add_parser("export-portfolio-json", help="Export current portfolio (with coingecko_id) as JSON to stdout")
+    impj = sub.add_parser("import-portfolio-json", help="Import portfolio JSON (with coingecko_id)")
+    impj.add_argument("path", help="Path to portfolio.json to import")
+    res = sub.add_parser("resolve-cg", help="Propose coingecko_id for unmapped assets")
+    res.add_argument("--limit", type=int, default=100, help="Max number of assets to propose (default 100)")
+    rep = sub.add_parser("report-24h", help="Report which assets have full 24h hourly coverage")
 
     lg = sub.add_parser("logs", help="Tail logs for frontend/backend")
     lg.add_argument("which", choices=["fe", "be", "both"], help="Which logs to show")
@@ -298,7 +306,12 @@ def main() -> int:
         )
         return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
     if args.cmd == "repair":
-        if args.carry_forward:
+        if args.hourly_24h:
+            code = (
+                "from balancer.repair import hourly_backfill_24h; from balancer.compaction import compact_all; "
+                "hourly_backfill_24h(); compact_all()"
+            )
+        elif args.carry_forward:
             code = (
                 "from balancer.repair import carry_forward_missing; from balancer.compaction import compact_all; "
                 "carry_forward_missing(); compact_all()"
@@ -320,6 +333,37 @@ def main() -> int:
         code = (
             "from balancer.csv_io import import_portfolio_csv; "
             f"import_portfolio_csv(r'{args.path}', portfolio_name={repr(args.portfolio)})"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+
+    if args.cmd == "export-portfolio-json":
+        code = (
+            "from balancer.exporter import export_portfolio_json; "
+            "p = export_portfolio_json(); print(p)"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+    if args.cmd == "import-portfolio-json":
+        if len(sys.argv) < 3:
+            print("usage: balancerctl import-portfolio-json <path>")
+            return 2
+        pj = sys.argv[2]
+        code = (
+            "from balancer.importer import import_portfolio_json; "
+            f"import_portfolio_json(r'{pj}')"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+
+    if args.cmd == "resolve-cg":
+        code = (
+            "import json; from balancer.resolver import resolve_missing_coingecko_ids; "
+            f"print(json.dumps(resolve_missing_coingecko_ids(limit={getattr(args, 'limit', 100)}), indent=2))"
+        )
+        return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
+
+    if args.cmd == "report-24h":
+        code = (
+            "import json; from balancer.health import report_24h_per_asset; "
+            "print(json.dumps(report_24h_per_asset(), indent=2))"
         )
         return subprocess.call([PYEXEC, "-c", code], cwd=str(ROOT))
 

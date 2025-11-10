@@ -36,9 +36,11 @@ def compact_prices(now: datetime | None = None) -> None:
         grp_hour = "asset_id, ccy, strftime('%Y-%m-%d %H:00:00', at)"
         _delete_not_in(conn, "prices", where_hour, grp_hour)
 
-        # Daily window: last 365 days
+        # Daily window: last 365 days EXCLUDING last 24h
         since_1y = now - timedelta(days=365)
-        where_day = f"at >= '{since_1y.isoformat(sep=' ')}'"
+        where_day = (
+            f"at >= '{since_1y.isoformat(sep=' ')}' AND at < '{since_24h.isoformat(sep=' ')}'"
+        )
         grp_day = "asset_id, ccy, date(at)"
         _delete_not_in(conn, "prices", where_day, grp_day)
 
@@ -68,8 +70,10 @@ def compact_fx(now: datetime | None = None) -> None:
               )
             """
         )
-        # Daily 1y
-        where_day = f"at >= '{since_1y.isoformat(sep=' ')}'"
+        # Daily 1y EXCLUDING last 24h
+        where_day = (
+            f"at >= '{since_1y.isoformat(sep=' ')}' AND at < '{since_24h.isoformat(sep=' ')}'"
+        )
         conn.exec_driver_sql(
             f"""
             DELETE FROM fx_rates

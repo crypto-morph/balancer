@@ -70,3 +70,4 @@ const result = await getIcons(deps)
 3. Update existing tests to use new structure
 4. Apply similar pattern to other complex routes if needed
 
+

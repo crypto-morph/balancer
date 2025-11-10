@@ -2,41 +2,23 @@
 
 This document identifies files that don't do anything, are unused, or serve no purpose in the codebase.
 
-## 🔴 Definitely Unused / Dead Code
+## ✅ Deleted Files (2024)
 
-### 1. **`web/src/app/api/icons/route.refactored.ts`**
-**Status:** Unused refactored version  
-**Reason:** This is a refactored version of the icons route that was created as an example but is not actually being used. The original `route.ts` is still the active route handler.
+The following unused files have been removed from the codebase:
 
-**Evidence:**
-- File exists but is never imported
-- Next.js uses `route.ts` by default, not `route.refactored.ts`
-- Created as part of refactoring suggestions but not integrated
+1. **`web/src/app/api/icons/route.refactored.ts`** - Deleted (unused refactored version)
+2. **`web/src/lib/icons-service.test.ts`** - Deleted (test file for unused service)
+3. **`web/src/lib/icons-service.ts`** - Deleted (only used by deleted refactored route)
+4. **`balancer/mapping_import.py`** - Deleted (never imported or used)
 
-**Recommendation:** 
-- **Option A:** Delete if refactoring is not planned
-- **Option B:** Replace `route.ts` with this refactored version if refactoring is approved
-- **Option C:** Move to `docs/examples/` as reference implementation
+**Verification:** Tests were run before and after deletion. No new test failures were introduced by these deletions.
 
 ---
 
-### 2. **`web/src/lib/icons-service.test.ts`**
-**Status:** Test file for unused service  
-**Reason:** This test file tests `icons-service.ts`, which is only used by the unused `route.refactored.ts`. The service itself is not used in production.
+## 🟡 Potentially Unused / Questionable
 
-**Evidence:**
-- Tests `icons-service.ts` which is only imported by `route.refactored.ts`
-- `route.refactored.ts` is not used
-- No other files import from `icons-service.ts`
-
-**Recommendation:**
-- **Option A:** Delete if refactoring is not planned
-- **Option B:** Keep if planning to use the refactored route
-
----
-
-### 3. **`balancer/__init__.py`**
-**Status:** Empty file  
+### 1. **`balancer/__init__.py`**
+**Status:** Empty file (kept for package structure)  
 **Reason:** Contains only `__all__ = []` with no actual exports or initialization code.
 
 **Current Content:**
@@ -47,38 +29,16 @@ __all__ = []
 **Evidence:**
 - File is essentially empty
 - No imports, no initialization, no exports
+- However, kept for Python package structure (harmless)
 
 **Recommendation:**
-- **Option A:** Delete if not needed (Python packages don't require `__init__.py` in modern Python 3.3+)
-- **Option B:** Keep if you want to explicitly mark it as a package (though it's not necessary)
+- **Option A:** Keep as-is (harmless, marks package)
+- **Option B:** Delete if not needed (Python packages don't require `__init__.py` in modern Python 3.3+)
 - **Option C:** Add actual package-level exports if needed
 
 ---
 
-### 4. **`balancer/mapping_import.py`**
-**Status:** Unused module  
-**Reason:** Contains `import_cg_mapping()` function but is never imported or called anywhere in the codebase.
-
-**Evidence:**
-- `grep` search found no imports of this module
-- Function `import_cg_mapping()` is never called
-- Not referenced in `balancerctl` or any other entry points
-
-**Current Functionality:**
-- Imports Coingecko mappings from JSON file
-- Supports array format (list of IDs) or object format (symbol -> ID mapping)
-- Updates `Asset.coingecko_id` by symbol
-
-**Recommendation:**
-- **Option A:** Delete if functionality is not needed
-- **Option B:** Integrate into `balancerctl` if this is a useful utility
-- **Option C:** Document and expose as a CLI command if it's meant to be used manually
-
----
-
-## 🟡 Potentially Unused / Questionable
-
-### 5. **`qa/suggestions.md`**
+### 2. **`qa/suggestions.md`**
 **Status:** Code review document  
 **Reason:** This appears to be a code quality review document with suggestions. It's not code, but it's also not clear if it's actively maintained or if the suggestions have been addressed.
 
@@ -96,7 +56,7 @@ __all__ = []
 
 ---
 
-### 6. **`docs/REFACTORING-SUGGESTIONS.md`**
+### 3. **`docs/REFACTORING-SUGGESTIONS.md`**
 **Status:** Documentation for unused refactoring  
 **Reason:** Documents the refactoring approach for the icons route, but the refactoring hasn't been applied.
 
@@ -135,39 +95,34 @@ These files might look unused but are actually used:
 - **`balancer/csv_io.py`** - Used by `balancerctl export-csv` and `import-csv` commands
 - **`balancer/health.py`** - Used by `balancerctl health` and frontend health badge
 - **`balancer/http_client.py`** - Used by `balancer/clients.py` (CoingeckoClient)
-- **`balancer/mapping_import.py`** - ❌ Actually NOT used (see above)
+- **`balancer/mapping_import.py`** - ❌ **DELETED** (was unused)
 
 ---
 
 ## 📋 Summary & Action Plan
 
-### High Priority (Definitely Unused)
-1. ✅ **`web/src/app/api/icons/route.refactored.ts`** - Delete or integrate
-2. ✅ **`web/src/lib/icons-service.test.ts`** - Delete or keep with refactoring
-3. ✅ **`balancer/mapping_import.py`** - Delete or integrate into CLI
+### ✅ Completed Actions
+1. ✅ **`web/src/app/api/icons/route.refactored.ts`** - **DELETED**
+2. ✅ **`web/src/lib/icons-service.test.ts`** - **DELETED**
+3. ✅ **`web/src/lib/icons-service.ts`** - **DELETED**
+4. ✅ **`balancer/mapping_import.py`** - **DELETED**
 
-### Medium Priority (Questionable)
-4. ⚠️ **`balancer/__init__.py`** - Delete or add actual content
-5. ⚠️ **`qa/suggestions.md`** - Move to docs or convert to issues
-6. ⚠️ **`docs/REFACTORING-SUGGESTIONS.md`** - Keep if planning refactoring
+### Remaining Items (Questionable)
+1. ⚠️ **`balancer/__init__.py`** - Empty but kept for package structure
+2. ⚠️ **`qa/suggestions.md`** - Move to docs or convert to issues
+3. ⚠️ **`docs/REFACTORING-SUGGESTIONS.md`** - Keep if planning refactoring
 
 ### Low Priority (Minimal but Used)
-7. ✅ **`web/src/lib/utils.ts`** - Keep (actively used)
+4. ✅ **`web/src/lib/utils.ts`** - Keep (actively used)
 
 ---
 
-## 🎯 Recommended Actions
-
-### Immediate Actions
-1. **Delete `route.refactored.ts`** if refactoring is not planned, OR
-   **Replace `route.ts` with refactored version** if refactoring is approved
-2. **Delete `icons-service.test.ts`** if refactoring is not planned
-3. **Delete or integrate `mapping_import.py`** - decide if this functionality is needed
+## 🎯 Remaining Recommended Actions
 
 ### Follow-up Actions
-4. **Review `qa/suggestions.md`** - determine if it's still relevant
-5. **Clean up `__init__.py`** - either delete or add meaningful content
-6. **Update `REFACTORING-SUGGESTIONS.md`** - mark as implemented or remove
+1. **Review `qa/suggestions.md`** - determine if it's still relevant
+2. **Clean up `__init__.py`** - either delete or add meaningful content (optional)
+3. **Update `REFACTORING-SUGGESTIONS.md`** - mark as implemented or remove
 
 ---
 
@@ -194,4 +149,5 @@ grep -r "from.*file_name\|import.*file_name" web/src
 # Check if file is referenced in build/test configs
 grep -r "file_name" web/package.json web/vitest.config.ts
 ```
+
 

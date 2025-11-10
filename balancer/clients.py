@@ -55,6 +55,12 @@ class CoingeckoClient:
                     continue
                 raise
 
+    def search(self, query: str) -> Dict[str, Any]:
+        url = urljoin(self.base, "search")
+        params = {"query": query}
+        resp = self.http.get(url, params=params)
+        return resp.json() or {"coins": []}
+
     def global_metrics(self) -> Dict[str, Any]:
         url = urljoin(self.base, "global")
         resp = self.http.get(url)

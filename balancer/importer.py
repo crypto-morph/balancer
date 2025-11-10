@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
+import json
 
 from .config import INITIAL_TOKENLIST, AVG_COST_DEFAULT_CCY
 from .db import Base, engine, SessionLocal
@@ -87,7 +88,49 @@ def import_tokenlist(tokenlist_path: str = INITIAL_TOKENLIST, portfolio_name: st
                     db.add(asset)
                     db.commit()
 
-            # upsert position
+
+def import_portfolio_json(path: str, portfolio_name: str = "Default") -> None:
+    p = Path(path)
+    if not p.exists():
+        return
+    data: Dict[str, Any] = json.loads(p.read_text(encoding="utf-8"))
+    assets = data.get("assets") or []
+    if not isinstance(assets, list):
+        return
+    Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        # ensure portfolio exists
+        portfolio = db.query(Portfolio).filter_by(name=portfolio_name).first()
+        if not portfolio:
+            portfolio = Portfolio(name=portfolio_name, base_currency="USD")
+            db.add(portfolio)
+            db.commit()
+            db.refresh(portfolio)
+        for a in assets:
+            sym = (a.get("symbol") or "").upper()
+            name = a.get("name") or sym
+            cg = a.get("coingecko_id") or None
+            coins = float(a.get("coins") or 0.0)
+            if not sym:
+                continue
+            asset = db.query(Asset).filter_by(symbol=sym).first()
+            if not asset:
+                asset = Asset(symbol=sym, name=name, coingecko_id=cg, active=True)
+                db.add(asset)
+                db.commit()
+                db.refresh(asset)
+            else:
+                # update name and mapping if provided
+                updated = False
+                if name and asset.name != name:
+                    asset.name = name
+                    updated = True
+                if cg and asset.coingecko_id != cg:
+                    asset.coingecko_id = cg
+                    updated = True
+                if updated:
+                    db.add(asset)
+                    db.commit()
             pos = db.query(Position).filter_by(portfolio_id=portfolio.id, asset_id=asset.id).first()
             if not pos:
                 pos = Position(
@@ -95,14 +138,11 @@ def import_tokenlist(tokenlist_path: str = INITIAL_TOKENLIST, portfolio_name: st
                     asset_id=asset.id,
                     coins=coins,
                     avg_cost_ccy=AVG_COST_DEFAULT_CCY,
-                    avg_cost_per_unit=avg_buy_price_gbp,
+                    avg_cost_per_unit=0.0,
                 )
                 db.add(pos)
             else:
-                # overwrite with latest from file
                 pos.coins = coins
-                pos.avg_cost_ccy = AVG_COST_DEFAULT_CCY
-                pos.avg_cost_per_unit = avg_buy_price_gbp
                 db.add(pos)
             db.commit()
 

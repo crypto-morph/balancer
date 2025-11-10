@@ -13,7 +13,7 @@ FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 DEFAULT_BASE_CCY = os.getenv("BASE_CCY", "USD")
 LOG_PATH = os.getenv("LOG_PATH", str(BASE_DIR / "alerts.jsonl"))
 INITIAL_TOKENLIST = os.getenv("INITIAL_TOKENLIST", str(BASE_DIR / "docs/initial-data/tokenlist.txt"))
-CG_MAPPING_FILE = os.getenv("CG_MAPPING_FILE", str(BASE_DIR / "docs/initial-data/cg-mapping.txt"))
+CG_MAPPING_FILE = os.getenv("CG_MAPPING_FILE", str(BASE_DIR / "docs/initial-data/cg-mapping.json"))
 COOLOFF_DAYS = float(os.getenv("COOLOFF_DAYS", "1"))
 
 # HTTP and API configuration
