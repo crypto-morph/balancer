@@ -145,6 +145,17 @@ The following sections in `docs/spec.md` should be systematically converted to t
 - Test: API routes handle missing data gracefully
 - Test: API routes respect environment variables (`DB_PATH`, `LOG_PATH`)
 
+#### Next.js API Testing Patterns
+
+When routes interact with the filesystem (e.g. `GET /api/alerts`), prefer exercising the real `node:fs/promises` module with controlled test data instead of mocking `fs`. A reliable recipe is:
+
+1. **Create a temp project root** at the start of each test via `mkdtemp(path.join(os.tmpdir(), 'balancer-test-'))` and clean it up in `afterEach` with `rm(..., { recursive: true, force: true })`.
+2. **Mock `@/lib/db-config`** so `getProjectRoot`, `getDbPath`, and `getCacheDir` resolve inside the temp directory. This keeps route logic unchanged while ensuring file IO stays in the sandbox.
+3. **Write fixture files directly** (e.g. `alerts.jsonl`) using `writeFile` from `node:fs/promises` before dynamically importing the route. Dynamic `import('./route')` lets each test pick up fresh data after the mocks are in place.
+4. **Avoid brittle `fs` mocks**—they are easy to miss if the route switches between `node:fs/promises`, `fs/promises`, or `fs`. Real file IO within a temp workspace is simpler and mirrors production behavior more closely.
+
+Following this pattern keeps route tests deterministic, covers parsing logic end-to-end, and avoids regressions. The `GET /api/alerts` route test (updated December 2024) now follows this pattern and serves as a reference implementation.
+
 #### 7. Environment Configuration (`README.md#environment-variables`)
 
 **Configuration Tests**
@@ -402,12 +413,12 @@ def test_something(test_db, sample_assets, sample_positions):
    - Test caching logic (1 week TTL)
    - Test stale cache fallback
    - Test response structure (`images`, `caps`)
-   - ✅ Existing: `web/src/app/api/icons/route.test.ts`
+   - ✅ Existing: `web/src/app/api/icons/route.test.ts` (uses fs mocking; could be refactored to temp directory pattern)
 
 5. **`GET /api/alerts`**
    - Test JSONL file reading
    - Test parsing and response structure
-   - ✅ Existing: `web/src/app/api/alerts/route.test.ts`
+   - ✅ Existing: `web/src/app/api/alerts/route.test.ts` (follows temp directory pattern from lines 148-157)
 
 6. **`POST /api/positions/update`**
    - Test position update in SQLite
