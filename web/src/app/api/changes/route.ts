@@ -3,12 +3,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import Database from 'better-sqlite3'
 import { ONE_HOUR_MS, ONE_DAY_MS, days } from '@/lib/time-utils'
-
-function pctChange(latest: number, ref: number | null | undefined): number | null {
-  if (!ref || ref <= 0 || !isFinite(ref)) return null
-  if (!isFinite(latest)) return null
-  return ((latest - ref) / ref) * 100
-}
+import { pctChange } from '@/lib/math-utils'
 
 export async function GET(req: Request) {
   try {
