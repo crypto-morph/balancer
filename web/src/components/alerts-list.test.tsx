@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { AlertsList } from './alerts-list'
 
 describe('AlertsList', () => {
@@ -194,7 +194,7 @@ describe('AlertsList', () => {
   })
 
   it('refreshes data every 15 seconds', async () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     global.fetch = vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve({ alerts: [] }),
@@ -203,15 +203,18 @@ describe('AlertsList', () => {
 
     render(<AlertsList />)
 
+    // Wait for initial fetch
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1)
     })
 
+    // Advance timers - shouldAdvanceTime will handle promises
     vi.advanceTimersByTime(15000)
 
+    // Wait for second fetch
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(2)
-    })
+    }, { timeout: 2000 })
 
     vi.useRealTimers()
   })

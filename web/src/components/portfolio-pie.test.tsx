@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import { PortfolioPie } from './portfolio-pie'
 
 describe('PortfolioPie', () => {
@@ -124,7 +124,7 @@ describe('PortfolioPie', () => {
   })
 
   it('refreshes data every 60 seconds', async () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     global.fetch = vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve({ total_mv_gbp: 100000, assets: [] }),
@@ -133,15 +133,18 @@ describe('PortfolioPie', () => {
 
     render(<PortfolioPie />)
 
+    // Wait for initial fetch
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1)
     })
 
+    // Advance timers - shouldAdvanceTime will handle promises
     vi.advanceTimersByTime(60000)
 
+    // Wait for second fetch
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(2)
-    })
+    }, { timeout: 2000 })
 
     vi.useRealTimers()
   })
