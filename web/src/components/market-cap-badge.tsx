@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { formatMoney } from "@/components/portfolio/format";
 
 type Props = {
   coingeckoId?: string;
@@ -17,13 +18,6 @@ function marketCapBand(capUsd: number): { label: string; className: string } {
   if (capUsd >= 300_000_000) return { label: "medium", className: "bg-amber-100 text-amber-700" };
   if (capUsd >= 50_000_000) return { label: "small", className: "bg-yellow-100 text-yellow-700" };
   return { label: "micro", className: "bg-zinc-200 text-zinc-800" };
-}
-
-function formatMoney(ccy: "USD" | "GBP" | "BTC", value: number): string {
-  const v = value ?? 0;
-  if (ccy === "USD") return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  if (ccy === "GBP") return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-  return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 8 }).format(v)} BTC`;
 }
 
 export function MarketCapBadge({ coingeckoId, caps, price_usd = 0, price_gbp = 0, price_btc = 0, ccy }: Props) {
