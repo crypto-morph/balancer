@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import path from 'path'
 import Database from 'better-sqlite3'
+import { ONE_DAY_MS } from '@/lib/time-utils'
 
 export async function GET() {
   try {
@@ -9,8 +10,8 @@ export async function GET() {
     const db = new Database(dbPath)
     try {
       const now = new Date()
-      const t1d = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
-      const t1m = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const t1d = new Date(now.getTime() - ONE_DAY_MS).toISOString()
+      const t1m = new Date(now.getTime() - 30 * ONE_DAY_MS).toISOString()
 
       const posRows = db.prepare(`
         SELECT positions.coins AS coins, positions.avg_cost_per_unit AS avg_cost_per_unit, assets.id AS asset_id

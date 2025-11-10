@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import path from 'path'
 import fs from 'fs/promises'
 import Database from 'better-sqlite3'
+import { ONE_HOUR_MS, ONE_DAY_MS, days } from '@/lib/time-utils'
 
 function pctChange(latest: number, ref: number | null | undefined): number | null {
   if (!ref || ref <= 0 || !isFinite(ref)) return null
@@ -46,10 +47,6 @@ export async function GET(req: Request) {
       const nowISO = nowRow?.now || new Date().toISOString()
       const now = new Date(nowISO).getTime()
 
-      const oneHour = 60 * 60 * 1000
-      const oneDay = 24 * oneHour
-      const days = (n: number) => n * oneDay
-
       const result: Record<string, any> = {}
 
       for (const r of posRows) {
@@ -65,8 +62,8 @@ export async function GET(req: Request) {
         })()
         if (latestPrice === null) continue
 
-        const at1h = new Date(now - oneHour).toISOString()
-        const at1d = new Date(now - oneDay).toISOString()
+        const at1h = new Date(now - ONE_HOUR_MS).toISOString()
+        const at1d = new Date(now - ONE_DAY_MS).toISOString()
         const at30d = new Date(now - days(30)).toISOString()
         const at60d = new Date(now - days(60)).toISOString()
         const at90d = new Date(now - days(90)).toISOString()
