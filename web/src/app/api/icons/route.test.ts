@@ -19,27 +19,28 @@ vi.mock('better-sqlite3', () => {
     prepare: vi.fn(),
     close: vi.fn(),
   }
+  const MockDatabase = vi.fn(() => mockDb)
+  // Store mockDb on the constructor so tests can access it
+  ;(MockDatabase as any).mockDb = mockDb
   return {
-    default: vi.fn(() => mockDb),
+    default: MockDatabase,
   }
 })
 
-// Mock path - use actual path module but mock resolve to handle process.cwd()
-vi.mock('path', async () => {
-  const actual = await vi.importActual<typeof import('path')>('path')
-  return {
-    default: {
-      resolve: vi.fn((...args: string[]) => {
-        // If first arg is process.cwd() result, handle it
-        if (args[0] === '/test/project/web' && args[1] === '..') {
-          return '/test/project'
-        }
-        return actual.default.resolve(...args)
-      }),
-      join: actual.default.join,
-    },
-  }
-})
+// Mock path - simpler approach like alerts test
+vi.mock('path', () => ({
+  default: {
+    resolve: vi.fn((...args: string[]) => {
+      // If resolving process.cwd() + '..', return '/test/project'
+      if (args.length === 2 && args[0] === '/test/project/web' && args[1] === '..') {
+        return '/test/project'
+      }
+      // Otherwise, join the args
+      return args.join('/')
+    }),
+    join: vi.fn((...args: string[]) => args.join('/')),
+  },
+}))
 
 // Mock global fetch
 global.fetch = vi.fn()
@@ -57,15 +58,16 @@ describe('/api/icons', () => {
       prepare: vi.fn(() => mockStmt),
       close: vi.fn(),
     }
+    // Reset Database mock to return our mockDb
     ;(Database as any).mockImplementation(() => mockDb)
+    ;(Database as any).mockClear()
     process.env.DB_PATH = undefined
     process.env.COINGECKO_API_KEY = undefined
     process.env.COINGECKO = undefined
+    process.env.PORTFOLIO_NAME = undefined
     // Mock process.cwd() to return a test directory
-    Object.defineProperty(process, 'cwd', {
-      value: vi.fn(() => '/test/project/web'),
-      writable: true,
-    })
+    // Note: process.cwd is a function, so we need to mock it as a function
+    vi.spyOn(process, 'cwd').mockReturnValue('/test/project/web')
   })
 
   it('returns cached icons when cache is fresh and has caps', async () => {
@@ -74,8 +76,19 @@ describe('/api/icons', () => {
       images: { bitcoin: 'https://example.com/bitcoin.png' },
       caps: { bitcoin: 1000000000 },
     }
-    // Mock readFile to return cached data - route reads cachePath which is '/test/project/.cache/icons.json'
-    ;(fs.readFile as any).mockResolvedValue(JSON.stringify(cachedData))
+    
+    // Mock readFile to return cached data - must handle the actual cache path
+    // The route constructs: path.join(path.join(path.resolve(process.cwd(), '..'), '.cache'), 'icons.json')
+    // With our mocks: path.resolve('/test/project/web', '..') -> '/test/project'
+    // Then: path.join('/test/project', '.cache') -> '/test/project/.cache'
+    // Then: path.join('/test/project/.cache', 'icons.json') -> '/test/project/.cache/icons.json'
+    const expectedCachePath = '/test/project/.cache/icons.json'
+    ;(fs.readFile as any).mockImplementation((filePath: string) => {
+      if (filePath === expectedCachePath || filePath.includes('icons.json')) {
+        return Promise.resolve(JSON.stringify(cachedData))
+      }
+      return Promise.reject(new Error(`Unexpected file path: ${filePath}`))
+    })
     ;(fs.mkdir as any).mockResolvedValue(undefined)
 
     const response = await GET()
@@ -86,7 +99,9 @@ describe('/api/icons', () => {
     expect(data.caps).toEqual(cachedData.caps)
     expect(global.fetch).not.toHaveBeenCalled()
     // Verify readFile was called with the cache path
-    expect(fs.readFile).toHaveBeenCalled()
+    expect(fs.readFile).toHaveBeenCalledWith(expectedCachePath, 'utf-8')
+    // Verify Database was NOT called since we returned early from cache
+    expect(Database).not.toHaveBeenCalled()
   })
 
   it('fetches from API when cache is stale', async () => {
