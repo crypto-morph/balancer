@@ -1,48 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET } from './route'
-import path from 'path'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import os from 'node:os'
+import path from 'node:path'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 
-// Mock db-config
+// Mock db-config so routes read/write under our tempRoot
 vi.mock('@/lib/db-config', () => ({
-  getProjectRoot: vi.fn(() => '/test/project'),
-  getDbPath: vi.fn(() => '/test/project/balancer.db'),
-  getCacheDir: vi.fn(() => '/test/project/.cache'),
+  getProjectRoot: vi.fn(() => tempRoot),
+  getDbPath: vi.fn(() => path.join(tempRoot, 'balancer.db')),
+  getCacheDir: vi.fn(() => path.join(tempRoot, '.cache')),
 }))
 
-// Create a shared mock function using vi.hoisted to avoid hoisting issues
-const { mockReadFileFn } = vi.hoisted(() => {
-  return {
-    mockReadFileFn: vi.fn(),
-  }
-})
-
-// Mock fs module with promises property
-// The route imports { promises as fs } from 'fs', so we need to mock the promises property
-vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('fs')>()
-  return {
-    ...actual,
-    promises: {
-      readFile: mockReadFileFn,
-    },
-  }
-})
-
-// Import after mocks are set up
-import { promises as fs } from 'fs'
-
-// Mock path
-vi.mock('path', () => ({
-  default: {
-    resolve: vi.fn(() => '/test/project'),
-    join: vi.fn((...args) => args.join('/')),
-  },
-}))
+let tempRoot: string
 
 describe('/api/alerts', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules()
     vi.clearAllMocks()
-    mockReadFileFn.mockReset()
+    tempRoot = await mkdtemp(path.join(os.tmpdir(), 'alerts-test-'))
+  })
+
+  afterEach(async () => {
+    if (tempRoot) {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
   })
 
   it('returns parsed alerts from JSONL file', async () => {
@@ -52,22 +32,16 @@ describe('/api/alerts', () => {
     ]
     const jsonlContent = mockAlerts.map(a => JSON.stringify(a)).join('\n')
     
-    // Set up mock - ensure it returns a Promise
-    mockReadFileFn.mockImplementation(() => Promise.resolve(jsonlContent))
+    await writeFile(path.join(tempRoot, 'alerts.jsonl'), jsonlContent, 'utf8')
 
+    const { GET } = await import('./route')
     const response = await GET()
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    // Debug: verify mock was called
-    expect(mockReadFileFn).toHaveBeenCalled()
     expect(data.alerts).toHaveLength(2)
     expect(data.alerts[0]).toMatchObject(mockAlerts[0])
     expect(data.alerts[1]).toMatchObject(mockAlerts[1])
-    expect(mockReadFileFn).toHaveBeenCalledWith(
-      expect.stringContaining('alerts.jsonl'),
-      'utf8'
-    )
   })
 
   it('returns last 100 alerts when more than 100 exist', async () => {
@@ -78,8 +52,9 @@ describe('/api/alerts', () => {
       message: `Alert ${i}`,
     }))
     const jsonlContent = manyAlerts.map(a => JSON.stringify(a)).join('\n')
-    mockReadFileFn.mockImplementation(() => Promise.resolve(jsonlContent))
+    await writeFile(path.join(tempRoot, 'alerts.jsonl'), jsonlContent, 'utf8')
 
+    const { GET } = await import('./route')
     const response = await GET()
     const data = await response.json()
 
@@ -89,8 +64,8 @@ describe('/api/alerts', () => {
   })
 
   it('returns empty array when file does not exist', async () => {
-    ;(fs.readFile as any).mockRejectedValue(new Error('File not found'))
 
+    const { GET } = await import('./route')
     const response = await GET()
     const data = await response.json()
 
@@ -104,8 +79,9 @@ describe('/api/alerts', () => {
       'invalid json line',
       JSON.stringify({ at: '2024-01-02T00:00:00Z', type: 'test', severity: 'info', message: 'Also valid' }),
     ].join('\n')
-    mockReadFileFn.mockImplementation(() => Promise.resolve(jsonlContent))
+    await writeFile(path.join(tempRoot, 'alerts.jsonl'), jsonlContent, 'utf8')
 
+    const { GET } = await import('./route')
     const response = await GET()
     const data = await response.json()
 
@@ -114,8 +90,9 @@ describe('/api/alerts', () => {
   })
 
   it('handles empty file gracefully', async () => {
-    mockReadFileFn.mockImplementation(() => Promise.resolve(''))
+    await writeFile(path.join(tempRoot, 'alerts.jsonl'), '', 'utf8')
 
+    const { GET } = await import('./route')
     const response = await GET()
     const data = await response.json()
 
@@ -124,8 +101,10 @@ describe('/api/alerts', () => {
   })
 
   it('handles file read errors gracefully', async () => {
-    ;(fs.readFile as any).mockRejectedValue(new Error('Permission denied'))
+    // Simulate read error by pointing to a path we cannot read: remove temp dir before request
+    await rm(tempRoot, { recursive: true, force: true })
 
+    const { GET } = await import('./route')
     const response = await GET()
     const data = await response.json()
 

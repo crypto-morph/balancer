@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
+import { readFile } from 'node:fs/promises'
 import path from 'path'
 import { getProjectRoot } from '@/lib/db-config'
 
@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const projectRoot = getProjectRoot()
     const filePath = path.join(projectRoot, 'alerts.jsonl')
-    const data = await fs.readFile(filePath, 'utf8').catch(() => '')
+    const data = await readFile(filePath, 'utf8').catch(() => '')
     if (!data) {
       return NextResponse.json({ alerts: [] }, { status: 200 })
     }
