@@ -87,6 +87,23 @@ def import_tokenlist(tokenlist_path: str = INITIAL_TOKENLIST, portfolio_name: st
                     asset.is_fiat = is_fiat
                     db.add(asset)
                     db.commit()
+            
+            # upsert position
+            pos = db.query(Position).filter_by(portfolio_id=portfolio.id, asset_id=asset.id).first()
+            if not pos:
+                pos = Position(
+                    portfolio_id=portfolio.id,
+                    asset_id=asset.id,
+                    coins=coins,
+                    avg_cost_ccy=AVG_COST_DEFAULT_CCY,
+                    avg_cost_per_unit=avg_buy_price_gbp,
+                )
+                db.add(pos)
+            else:
+                pos.coins = coins
+                pos.avg_cost_per_unit = avg_buy_price_gbp
+                db.add(pos)
+            db.commit()
 
 
 def import_portfolio_json(path: str, portfolio_name: str = "Default") -> None:

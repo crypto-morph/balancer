@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple
-from datetime import datetime
+from datetime import datetime, UTC
 from .config import CG_MAPPING_FILE
 from .db import SessionLocal
 from .models import Asset, Price, FxRate, Position
