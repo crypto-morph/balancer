@@ -9,14 +9,21 @@ vi.mock('@/lib/db-config', () => ({
   getCacheDir: vi.fn(() => '/test/project/.cache'),
 }))
 
+// Create a shared mock function using vi.hoisted to avoid hoisting issues
+const { mockReadFileFn } = vi.hoisted(() => {
+  return {
+    mockReadFileFn: vi.fn(),
+  }
+})
+
 // Mock fs module with promises property
+// The route imports { promises as fs } from 'fs', so we need to mock the promises property
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>()
   return {
     ...actual,
     promises: {
-      ...actual.promises,
-      readFile: vi.fn(),
+      readFile: mockReadFileFn,
     },
   }
 })
@@ -35,7 +42,7 @@ vi.mock('path', () => ({
 describe('/api/alerts', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(fs.readFile as any).mockReset()
+    mockReadFileFn.mockReset()
   })
 
   it('returns parsed alerts from JSONL file', async () => {
@@ -44,16 +51,20 @@ describe('/api/alerts', () => {
       { at: '2024-01-02T00:00:00Z', type: 'drift', severity: 'warning', message: 'Test alert 2' },
     ]
     const jsonlContent = mockAlerts.map(a => JSON.stringify(a)).join('\n')
-    ;(fs.readFile as any).mockResolvedValue(jsonlContent)
+    
+    // Set up mock - ensure it returns a Promise
+    mockReadFileFn.mockImplementation(() => Promise.resolve(jsonlContent))
 
     const response = await GET()
     const data = await response.json()
 
     expect(response.status).toBe(200)
+    // Debug: verify mock was called
+    expect(mockReadFileFn).toHaveBeenCalled()
     expect(data.alerts).toHaveLength(2)
     expect(data.alerts[0]).toMatchObject(mockAlerts[0])
     expect(data.alerts[1]).toMatchObject(mockAlerts[1])
-    expect(fs.readFile).toHaveBeenCalledWith(
+    expect(mockReadFileFn).toHaveBeenCalledWith(
       expect.stringContaining('alerts.jsonl'),
       'utf8'
     )
@@ -67,7 +78,7 @@ describe('/api/alerts', () => {
       message: `Alert ${i}`,
     }))
     const jsonlContent = manyAlerts.map(a => JSON.stringify(a)).join('\n')
-    ;(fs.readFile as any).mockResolvedValue(jsonlContent)
+    mockReadFileFn.mockImplementation(() => Promise.resolve(jsonlContent))
 
     const response = await GET()
     const data = await response.json()
@@ -93,7 +104,7 @@ describe('/api/alerts', () => {
       'invalid json line',
       JSON.stringify({ at: '2024-01-02T00:00:00Z', type: 'test', severity: 'info', message: 'Also valid' }),
     ].join('\n')
-    ;(fs.readFile as any).mockResolvedValue(jsonlContent)
+    mockReadFileFn.mockImplementation(() => Promise.resolve(jsonlContent))
 
     const response = await GET()
     const data = await response.json()
@@ -103,7 +114,7 @@ describe('/api/alerts', () => {
   })
 
   it('handles empty file gracefully', async () => {
-    ;(fs.readFile as any).mockResolvedValue('')
+    mockReadFileFn.mockImplementation(() => Promise.resolve(''))
 
     const response = await GET()
     const data = await response.json()
